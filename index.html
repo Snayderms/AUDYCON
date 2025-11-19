@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Sistema Contable</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+<div class="login-container">
+    <h2>Sistema Contable</h2>
+
+    <input type="email" id="email" placeholder="Correo electrónico">
+    <input type="password" id="password" placeholder="Contraseña">
+
+    <button id="loginBtn">Ingresar</button>
+
+    <p id="msg"></p>
+
+    <p class="muted small">¿No tienes cuenta? <a href="signup.html">Regístrate</a></p>
+</div>
+
+<script type="module">
+    import { supabase } from './ConexionSB.js';
+
+    const loginBtn = document.getElementById("loginBtn");
+    const msg = document.getElementById("msg");
+
+    loginBtn.addEventListener("click", async () => {
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value.trim();
+
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+        if (error) {
+            msg.textContent = "Error: " + error.message;
+            msg.style.color = "red";
+        } else {
+            msg.style.color = "green";
+            msg.textContent = "Ingreso exitoso...";
+            setTimeout(() => window.location.href = "dashboard.html", 1500);
+        }
+    });
+</script>
+
+</body>
+
+<script type="module">
+import { supabase } from './ConexionSB.js';
+
+const hashParams = new URLSearchParams(window.location.hash.substr(1));
+const type = hashParams.get("type");
+
+if (type === "signup") {
+    const { data, error } = await supabase.auth.refreshSession();
+
+    if (!error) {
+        window.location.href = "/";
+    } else {
+        console.error("Error confirmando:", error);
+    }
+}
+</script>
+
+</html>

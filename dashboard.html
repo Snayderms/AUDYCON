@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Dashboard - Sistema Contable</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Pequeños estilos de ayuda (puedes mantener tus styles.css) */
+    .container{max-width:1100px;margin:28px auto;padding:16px}
+    .card{background:#fff;padding:18px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.06)}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+    .muted{color:#6b7280}
+    .role-badge{padding:6px 10px;border-radius:999px;background:#eef2ff;color:#0b63ff;font-weight:600}
+    nav a{margin-right:12px}
+    button{cursor:pointer;padding:8px 12px;border-radius:8px;border:0;background:#0b63ff;color:#fff}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1 id="title">Cargando...</h1>
+        <div class="muted" id="sub">—</div>
+      </div>
+      <div>
+        <nav id="navlinks"></nav>
+        <button id="logoutBtn">Cerrar sesión</button>
+      </div>
+    </header>
+
+    <main>
+      <div id="mainCard" class="card">
+        <h2 id="welcome">Cargando información...</h2>
+        <p id="info" class="muted"></p>
+
+        <div id="roleContent" style="margin-top:14px"></div>
+      </div>
+    </main>
+  </div>
+
+<script type="module">
+import { supabase } from './ConexionSB.js';
+
+const title = document.getElementById('title');
+const sub = document.getElementById('sub');
+const welcome = document.getElementById('welcome');
+const info = document.getElementById('info');
+const roleContent = document.getElementById('roleContent');
+const navlinks = document.getElementById('navlinks');
+const logoutBtn = document.getElementById('logoutBtn');
+
+async function init() {
+  // 1) Comprobar sesión
+  const { data: sessionData } = await supabase.auth.getSession();
+  const session = sessionData?.session;
+
+  if (!session) {
+    // No hay sesión -> redirigir al login
+    window.location.href = 'index.html';
+    return;
+  }
+
+  const user = session.user;
+  title.innerText = 'Dashboard';
+  sub.innerText = `Conectado como ${user.email}`;
+
+  // 2) Consultar profile (RLS: el usuario solo puede ver su propio profile)
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('full_name, role, created_at')
+    .eq('user_id', user.id)
+    .single();
+
+  if (error && error.code === 'PGRST116') {
+    // No autorizado o tabla/policies incorrectas
+    welcome.innerText = 'Error de permisos o configuración en Supabase.';
+    info.innerText = 'Revisa RLS y políticas en la tabla profiles.';
+    console.error(error);
+    return;
+  }
+
+  if (!profile) {
+    // No existe profile -> usuario todavía no confirmó email o está pendiente
+    welcome.innerText = 'Cuenta pendiente';
+    info.innerHTML = `Tu cuenta aún no está activa. Revisa tu correo para confirmar tu cuenta. Si ya confirmaste y aún no ves tu cuenta, espera unos segundos o contacta al administrador.`;
+    // Opcional: ofrecer reenvío del correo de confirmación
+    const resend = document.createElement('button');
+    resend.innerText = 'Reenviar correo de confirmación';
+    resend.addEventListener('click', async () => {
+      const { error: resendErr } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: window.location.origin + '/index.html' });
+      if (resendErr) alert('Error enviando correo: ' + resendErr.message);
+      else alert('Correo de verificación reenviado (revisa tu bandeja).');
+    });
+    roleContent.innerHTML = '';
+    roleContent.appendChild(resend);
+    return;
+  }
+
+  // 3) Perfil encontrado -> mostrar info
+  welcome.innerText = `Hola, ${profile.full_name}`;
+  info.innerText = `Rol: ${profile.role} · Miembro desde: ${new Date(profile.created_at).toLocaleString()}`;
+
+  // Mostrar badge de rol
+  const badge = document.createElement('span');
+  badge.className = 'role-badge';
+  badge.innerText = profile.role;
+  sub.innerHTML = '';
+  sub.appendChild(badge);
+
+  // 4) Mostrar contenido según rol
+  roleContent.innerHTML = ''; // limpiar
+
+  if (profile.role === 'admin') {
+    roleContent.innerHTML = `
+      <h3>Panel de Administrador</h3>
+      <p class="muted">Acceso completo: usuarios, roles, aprobaciones.</p>
+      <div style="margin-top:10px">
+        <a href="admin.html">Ir a Panel Admin</a>
+      </div>
+    `;
+    // agregar link admin
+    navlinks.innerHTML = `<a href="admin.html">Admin</a>`;
+  } else if (profile.role === 'jefe') {
+    roleContent.innerHTML = `
+      <h3>Panel del Jefe Contable</h3>
+      <p class="muted">Aquí podrás revisar aprobaciones y reportes críticos.</p>
+      <div style="margin-top:10px">
+        <button id="reqApprove">Ver solicitudes para aprobar</button>
+      </div>
+    `;
+    navlinks.innerHTML = `<a href="reports.html">Reportes</a>`;
+    // ejemplo: bind botón (más adelante implementaremos endpoint)
+    document.getElementById('reqApprove')?.addEventListener('click', () => {
+      alert('Aquí cargaremos las solicitudes pendientes para aprobar (funcionalidad futura).');
+    });
+  } else if (profile.role === 'contador') {
+    roleContent.innerHTML = `
+      <h3>Panel del Contador</h3>
+      <p class="muted">Accede a tus tareas, libros y generación de reportes.</p>
+      <div style="margin-top:10px">
+        <button id="myTasks">Mis tareas</button>
+      </div>
+    `;
+    navlinks.innerHTML = `<a href="tasks.html">Tareas</a>`;
+    document.getElementById('myTasks')?.addEventListener('click', () => {
+      alert('Aquí aparecerán tus tareas (funcionalidad futura).');
+    });
+  } else if (profile.role === 'cliente') {
+    roleContent.innerHTML = `
+      <h3>Área Cliente</h3>
+      <p class="muted">Solo puedes ver información y documentos relacionados a tu empresa.</p>
+      <div style="margin-top:10px">
+        <button id="myDocs">Mis documentos</button>
+      </div>
+    `;
+    navlinks.innerHTML = `<a href="mydocs.html">Mis documentos</a>`;
+    document.getElementById('myDocs')?.addEventListener('click', () => {
+      alert('Aquí verás tus documentos (funcionalidad futura).');
+    });
+  } else {
+    roleContent.innerHTML = `<p class="muted">Rol desconocido: ${profile.role}</p>`;
+  }
+}
+
+// Logout
+logoutBtn.addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  window.location.href = 'index.html';
+});
+
+// Ejecutar
+init();
+</script>
+</body>
+</html>
