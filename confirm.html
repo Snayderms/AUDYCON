@@ -2,14 +2,30 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Confirmación - Estudio Contable AUDYCON</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Confirmación de cuenta</title>
+  <link rel="stylesheet" href="styles.css"/>
   <style>
-    .confirm-container{width:360px;background:#fff;padding:28px;margin:120px auto;border-radius:12px;box-shadow:0 0 18px rgba(0,0,0,0.08);text-align:center}
+    .confirm-container{
+      width:360px;
+      background:#fff;
+      padding:28px;
+      margin:120px auto;
+      border-radius:12px;
+      box-shadow:0 0 18px rgba(0,0,0,0.08);
+      text-align:center
+    }
     .success{color:green;margin-top:10px}
     .error{color:#b91c1c;margin-top:10px}
-    a.button{display:inline-block;margin-top:14px;padding:10px 14px;border-radius:8px;background:#007bff;color:#fff;text-decoration:none}
+    a.button{
+      display:inline-block;
+      margin-top:14px;
+      padding:10px 14px;
+      border-radius:8px;
+      background:#007bff;
+      color:#fff;
+      text-decoration:none
+    }
   </style>
 </head>
 <body>
@@ -20,53 +36,41 @@
   </div>
 
   <script type="module">
-    import { supabase } from './ConexionSB.js';
+    import { supabase } from "./ConexionSB.js";
 
-    const status = document.getElementById('status');
-    const actions = document.getElementById('actions');
+    const status = document.getElementById("status");
+    const actions = document.getElementById("actions");
 
-    async function handleConfirmation(){
-      try{
-        // Supabase redirige tokens en el hash (#) después del callback
-        const hashParams = new URLSearchParams(window.location.hash.substr(1));
-        const type = hashParams.get('type') || new URLSearchParams(window.location.search).get('type');
+    async function runConfirm() {
+      const urlParams = new URLSearchParams(window.location.search);
 
-        if(!type){
-          status.innerHTML = '<p class="error">No se detectó un token de confirmación.</p>';
-          actions.innerHTML = '<a class="button" href="/index.html">Ir al inicio</a>';
-          return;
-        }
+      const token = urlParams.get("token");
+      const type = urlParams.get("type");
 
-        if(type === 'signup' || type === 'recovery'){
-          // Intentar refrescar la sesión usando el fragmento (flow de Supabase)
-          const { data, error } = await supabase.auth.refreshSession();
-
-          if(error){
-            console.error('Error al refrescar sesión:', error);
-            status.innerHTML = `<p class="error">Hubo un problema confirmando tu cuenta: ${error.message}</p>`;
-            actions.innerHTML = `<a class="button" href="/index.html">Ir al inicio</a>`;
-            return;
-          }
-
-          // Si todo OK
-          status.innerHTML = '<p class="success">¡Tu correo ha sido confirmado con éxito!</p>';
-          actions.innerHTML = '<a class="button" href="/index.html">Ir a Iniciar sesión</a>';
-          return;
-        }
-
-        // Tipo desconocido: mostrar link al inicio
-        status.innerHTML = '<p class="error">Tipo de confirmación desconocido.</p>';
-        actions.innerHTML = '<a class="button" href="/index.html">Ir al inicio</a>';
-
-      }catch(err){
-        console.error(err);
-        status.innerHTML = '<p class="error">Ocurrió un error inesperado. Revisa la consola para más detalles.</p>';
-        actions.innerHTML = '<a class="button" href="/index.html">Ir al inicio</a>';
+      if (!token || !type) {
+        status.innerHTML = "<p class='error'>No se detectó un token válido.</p>";
+        actions.innerHTML = "<a class='button' href='/index.html'>Ir al inicio</a>";
+        return;
       }
+
+      // Llamar al endpoint oficial de verificación
+      const { data, error } = await supabase.auth.verifyOtp({
+        type,
+        token,
+        email: null
+      });
+
+      if (error) {
+        status.innerHTML = `<p class='error'>Error confirmando usuario: ${error.message}</p>`;
+        actions.innerHTML = "<a class='button' href='/index.html'>Ir al inicio</a>";
+        return;
+      }
+
+      status.innerHTML = "<p class='success'>¡Cuenta confirmada con éxito!</p>";
+      actions.innerHTML = "<a class='button' href='/index.html'>Iniciar sesión</a>";
     }
 
-    // Ejecutar el flujo
-    handleConfirmation();
+    runConfirm();
   </script>
 </body>
 </html>
