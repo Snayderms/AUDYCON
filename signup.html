@@ -44,17 +44,19 @@
         return;
       }
 
-      // Crear usuario
+      // Crear usuario con redirect a confirm.html
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { full_name }  // pasa el nombre para usarlo en el trigger
+          data: { full_name },
+          emailRedirectTo: "https://audycon.vercel.app/confirm.html"
         }
       });
 
       if (error) {
         msg.textContent = "Error: " + error.message;
+        msg.style.color = "red";
         return;
       }
 
