@@ -42,32 +42,30 @@
     const actions = document.getElementById("actions");
 
     async function runConfirm() {
-      const urlParams = new URLSearchParams(window.location.search);
 
-      const token = urlParams.get("token");
-      const type = urlParams.get("type");
+      // Supabase envía todo en el HASH, no en el search
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
 
-      if (!token || !type) {
+      const access_token = hashParams.get("access_token");
+      const type = hashParams.get("type");
+
+      if (!access_token || !type) {
         status.innerHTML = "<p class='error'>No se detectó un token válido.</p>";
-        actions.innerHTML = "<a class='button' href='/index.html'>Ir al inicio</a>";
+        actions.innerHTML = "<a class='button' href='index.html'>Ir al inicio</a>";
         return;
       }
 
-      // Llamar al endpoint oficial de verificación
-      const { data, error } = await supabase.auth.verifyOtp({
-        type,
-        token,
-        email: null
-      });
+      // Intercambiar token por sesión válida
+      const { data, error } = await supabase.auth.exchangeCodeForSession(access_token);
 
       if (error) {
-        status.innerHTML = `<p class='error'>Error confirmando usuario: ${error.message}</p>`;
-        actions.innerHTML = "<a class='button' href='/index.html'>Ir al inicio</a>";
+        status.innerHTML = `<p class='error'>Error confirmando: ${error.message}</p>`;
+        actions.innerHTML = "<a class='button' href='index.html'>Ir al inicio</a>";
         return;
       }
 
       status.innerHTML = "<p class='success'>¡Cuenta confirmada con éxito!</p>";
-      actions.innerHTML = "<a class='button' href='/index.html'>Iniciar sesión</a>";
+      actions.innerHTML = "<a class='button' href='index.html'>Iniciar sesión</a>";
     }
 
     runConfirm();
