@@ -43,22 +43,29 @@
 
     async function runConfirm() {
 
-      // Leer tanto search (?token=) como hash (#access_token=)
-      const searchParams = new URLSearchParams(window.location.search);
+      // 1. Leer hash (#)
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
 
-      // Supabase puede enviar "token" o "access_token"
-      const token = searchParams.get("token") || hashParams.get("access_token");
-      const type = searchParams.get("type") || hashParams.get("type");
+      // 2. Leer search (?)
+      const searchParams = new URLSearchParams(window.location.search);
 
-      if (!token || !type) {
+      // Intentar obtener tokens desde ambos lugares
+      const access_token =
+        hashParams.get("access_token") ||
+        searchParams.get("token");
+
+      const type =
+        hashParams.get("type") ||
+        searchParams.get("type");
+
+      if (!access_token || !type) {
         status.innerHTML = "<p class='error'>No se detectó un token válido.</p>";
         actions.innerHTML = "<a class='button' href='index.html'>Ir al inicio</a>";
         return;
       }
 
-      // Intercambiar token por sesión activa
-      const { data, error } = await supabase.auth.exchangeCodeForSession(token);
+      // Intercambiar token por sesión válida
+      const { data, error } = await supabase.auth.exchangeCodeForSession(access_token);
 
       if (error) {
         status.innerHTML = `<p class='error'>Error confirmando: ${error.message}</p>`;
