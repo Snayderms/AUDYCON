@@ -1,74 +1,76 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirmación de Cuenta</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-        }
-
-        h2 {
-            margin-bottom: 10px;
-        }
-
-        .success { color: green; font-weight: bold; }
-        .error { color: red; font-weight: bold; }
-
-        a {
-            display: inline-block;
-            margin-top: 20px;
-            text-decoration: none;
-            background: #007bff;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 6px;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Confirmación de cuenta</title>
+  <style>
+    .confirm-container{
+      width:360px;
+      background:#fff;
+      padding:28px;
+      margin:120px auto;
+      border-radius:12px;
+      box-shadow:0 0 18px rgba(0,0,0,0.08);
+      text-align:center
+    }
+    .success{color:green;margin-top:10px}
+    .error{color:#b91c1c;margin-top:10px}
+    a.button{
+      display:inline-block;
+      margin-top:14px;
+      padding:10px 14px;
+      border-radius:8px;
+      background:#007bff;
+      color:#fff;
+      text-decoration:none
+    }
+  </style>
 </head>
 <body>
-
-<div class="container" id="box">
+  <div class="confirm-container">
     <h2>Confirmación de cuenta</h2>
-    <p id="msg">Procesando confirmación...</p>
-    <a href="index.html">Ir al inicio</a>
-</div>
+    <div id="status">Procesando confirmación...</div>
+    <div id="actions"></div>
+  </div>
 
-<script>
-    // Capturar parámetros enviados por Supabase
-    const params = new URLSearchParams(window.location.search);
+  <script type="module">
+    import { supabase } from "./ConexionSB.js";
 
-    const error = params.get("error");
-    const error_description = params.get("error_description");
+    const status = document.getElementById("status");
+    const actions = document.getElementById("actions");
 
-    const msg = document.getElementById("msg");
+    async function runConfirm() {
+      // 1) Primero intentamos leer el hash: (#access_token=...)
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const access_token = params.get("access_token");
 
-    if (error) {
-        // Si Supabase envía un error
-        msg.innerHTML = `<span class='error'>${error_description || "No se pudo confirmar la cuenta."}</span>`;
-    } else {
-        // SI TODO SALIÓ BIEN
-        msg.innerHTML = `<span class='success'>¡Tu cuenta ha sido confirmada correctamente!</span>`;
+      // 2) Si existe access_token → confirmamos con exchangeCodeForSession
+      if (access_token) {
+        const { error } = await supabase.auth.exchangeCodeForSession(access_token);
+
+        if (error) {
+          status.innerHTML = `<p class='error'>Error: ${error.message}</p>`;
+          actions.innerHTML = "<a class='button' href='index.html'>Ir al inicio</a>";
+          return;
+        }
+
+        status.innerHTML = "<p class='success'>¡Tu cuenta ha sido confirmada correctamente!</p>";
+        actions.innerHTML = "<a class='button' href='index.html'>Ir al inicio</a>";
+        return;
+      }
+
+      // 3) Si NO hay access_token, significa que Supabase ya confirmó la cuenta
+      //    (pero redirigió con ?error=true)
+      status.innerHTML = "<p class='success'>¡Tu cuenta ha sido confirmada correctamente!</p>";
+      actions.innerHTML = "<a class='button' href='index.html'>Ir al inicio</a>";
+
+      // 4) Limpiar la URL (quitar ?error=...)
+      history.replaceState({}, "", "confirm.html");
     }
-</script>
 
+    runConfirm();
+  </script>
 </body>
 </html>
