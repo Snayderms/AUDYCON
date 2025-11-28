@@ -43,20 +43,22 @@
 
     async function runConfirm() {
 
-      // Obtener el hash
-      const hash = window.location.hash.substring(1);
-      const params = new URLSearchParams(hash);
-
-      const access_token = params.get("access_token");
+      // Obtener parámetros reales enviados por Supabase
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("token");
       const type = params.get("type");
 
-      if (!access_token || !type) {
+      if (!token || !type) {
         status.innerHTML = "<p class='error'>No se detectó un token válido.</p>";
         actions.innerHTML = "<a class='button' href='index.html'>Ir al inicio</a>";
         return;
       }
 
-      const { data, error } = await supabase.auth.exchangeCodeForSession(access_token);
+      // Confirmación REAL
+      const { error } = await supabase.auth.verifyOtp({
+        token,
+        type
+      });
 
       if (error) {
         status.innerHTML = `<p class='error'>Error confirmando: ${error.message}</p>`;
