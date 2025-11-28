@@ -43,8 +43,9 @@
 
     async function runConfirm() {
 
-      // Obtener parámetros reales enviados por Supabase
+      // Supabase envía: confirm.html?token=XXXX&type=signup
       const params = new URLSearchParams(window.location.search);
+
       const token = params.get("token");
       const type = params.get("type");
 
@@ -54,10 +55,10 @@
         return;
       }
 
-      // Confirmación REAL
+      // Verificar token enviado por email
       const { error } = await supabase.auth.verifyOtp({
         token,
-        type
+        type,
       });
 
       if (error) {
