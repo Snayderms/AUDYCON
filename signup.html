@@ -1,10 +1,10 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Registro - Sistema Contable</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registro - AUDYCON</title>
+  <link rel="stylesheet" href="./CSS/styles.css">
 </head>
 
 <body>
@@ -16,53 +16,12 @@
     <input type="password" id="password" placeholder="Contraseña (mín 8 caracteres)" />
 
     <button id="signupBtn">Registrarme</button>
+
     <p id="msg" class="muted"></p>
 
     <p class="muted small">¿Ya tienes cuenta? <a href="index.html">Inicia sesión</a></p>
   </div>
 
-  <script type="module">
-    import { supabase } from "./ConexionSB.js";
-
-    const signupBtn = document.getElementById("signupBtn");
-    const msg = document.getElementById("msg");
-
-    signupBtn.addEventListener("click", async () => {
-      msg.textContent = "";
-
-      const full_name = document.getElementById("full_name").value.trim();
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value;
-
-      if (!full_name || !email || !password) {
-        msg.textContent = "Rellena todos los campos.";
-        return;
-      }
-
-      if (password.length < 8) {
-        msg.textContent = "La contraseña debe tener al menos 8 caracteres.";
-        return;
-      }
-
-      // Crear usuario con redirect a confirm.html
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name },
-          emailRedirectTo: "https://audycon.vercel.app/confirm.html"
-        }
-      });
-
-      if (error) {
-        msg.textContent = "Error: " + error.message;
-        msg.style.color = "red";
-        return;
-      }
-
-      msg.style.color = "green";
-      msg.textContent = "Registro exitoso. Revisa tu correo para confirmar tu cuenta.";
-    });
-  </script>
+  <script type="module" src="./JS/signup.js"></script>
 </body>
 </html>

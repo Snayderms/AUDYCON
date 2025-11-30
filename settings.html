@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ajustes de Cuenta | AUDYCON</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+  <nav class="bg-white shadow p-4 flex justify-between items-center">
+    <h1 class="text-xl font-bold text-blue-700">AUDYCON</h1>
+    <a href="profile.html" class="text-blue-600 hover:underline">Volver</a>
+  </nav>
+
+  <div class="max-w-3xl mx-auto mt-10 bg-white shadow-lg rounded-xl p-8">
+    <h2 class="text-2xl font-bold mb-6">Ajustes de la Cuenta</h2>
+
+    <!-- Cambiar nombre -->
+    <div class="mb-8">
+      <label class="block mb-1 font-medium">Nombre Completo</label>
+      <input id="new-name" type="text" class="w-full border p-3 rounded-lg">
+      <button id="save-name" class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        Guardar nombre
+      </button>
+    </div>
+
+    <hr class="my-6">
+
+    <!-- Cambiar contraseña -->
+    <div class="mb-8">
+      <h3 class="font-semibold mb-2">Cambiar contraseña</h3>
+      <input id="new-password" type="password" placeholder="Nueva contraseña" class="w-full border p-3 rounded-lg">
+      <button id="save-password" class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        Cambiar contraseña
+      </button>
+    </div>
+
+    <hr class="my-6">
+
+    <!-- Cerrar sesión -->
+    <button id="logout" class="w-full py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700">
+      Cerrar Sesión
+    </button>
+  </div>
+
+  <script type="module" src="./JS/dashboard.js"></script>
+</body>
+</html>

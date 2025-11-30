@@ -1,29 +1,19 @@
-<script>
-  const status = document.getElementById("status");
-  const actions = document.getElementById("actions");
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Confirmación de correo - AUDYCON</title>
+  <link rel="stylesheet" href="./CSS/styles.css">
+</head>
 
-  function runConfirm() {
-    // Supabase now returns query parameters (?foo=bar)
-    const params = new URLSearchParams(window.location.search);
+<body>
+  <div class="login-container">
+    <h2>Confirmación</h2>
 
-    const error = params.get("error");
-    const type = params.get("type");
+    <p id="msg" class="muted">Procesando...</p>
+  </div>
 
-    if (error) {
-      status.innerHTML = `<p class="error">Hubo un error verificando tu cuenta.</p>`;
-      actions.innerHTML = `<a class="button" href="index.html">Volver al inicio</a>`;
-      return;
-    }
-
-    if (type === "signup") {
-      status.innerHTML = `<p class="success">¡Tu cuenta ha sido confirmada correctamente!</p>`;
-      actions.innerHTML = `<a class="button" href="index.html">Iniciar sesión</a>`;
-      return;
-    }
-
-    status.innerHTML = `<p class="error">No se detectó un estado válido.</p>`;
-    actions.innerHTML = `<a class="button" href="index.html">Volver al inicio</a>`;
-  }
-
-  runConfirm();
-</script>
+  <script type="module" src="./JS/confirm.js"></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registros del Sistema | AUDYCON</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+  <nav class="bg-white shadow p-4 flex justify-between items-center">
+    <h1 class="text-xl font-bold text-blue-700">AUDYCON - Logs</h1>
+    <a href="admin.html" class="text-blue-600 hover:underline">Volver</a>
+  </nav>
+
+  <div class="max-w-6xl mx-auto mt-10 bg-white shadow-lg rounded-xl p-8">
+    <h2 class="text-2xl font-bold mb-6">Registros del Sistema</h2>
+
+    <div id="logs-container" class="space-y-4">
+      <!-- Logs cargados dinámicamente -->
+    </div>
+  </div>
+
+  <script type="module" src="./JS/dashboard.js"></script>
+</body>
+</html>
