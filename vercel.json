@@ -1,6 +1,0 @@
-{
-  "cleanUrls": true,
-  "rewrites": [
-    { "source": "/confirm", "destination": "/confirm/index.html" }
-  ]
-}
