@@ -6,24 +6,14 @@
   <title>Confirmación de cuenta</title>
   <style>
     .confirm-container{
-      width:360px;
-      background:#fff;
-      padding:28px;
-      margin:120px auto;
-      border-radius:12px;
-      box-shadow:0 0 18px rgba(0,0,0,0.08);
-      text-align:center
+      width:360px;background:#fff;padding:28px;margin:120px auto;
+      border-radius:12px;box-shadow:0 0 18px rgba(0,0,0,0.08);text-align:center
     }
     .success{color:green;margin-top:10px}
     .error{color:#b91c1c;margin-top:10px}
     a.button{
-      display:inline-block;
-      margin-top:14px;
-      padding:10px 14px;
-      border-radius:8px;
-      background:#007bff;
-      color:#fff;
-      text-decoration:none
+      display:inline-block;margin-top:14px;padding:10px 14px;border-radius:8px;
+      background:#007bff;color:#fff;text-decoration:none
     }
   </style>
 </head>
@@ -34,40 +24,31 @@
     <div id="actions"></div>
   </div>
 
-  <script type="module">
-    import { supabase } from "./ConexionSB.js";
-
+  <script>
     const status = document.getElementById("status");
     const actions = document.getElementById("actions");
 
-    async function runConfirm() {
-      // 1) Primero intentamos leer el hash: (#access_token=...)
+    function runConfirm() {
       const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
-      const access_token = params.get("access_token");
 
-      // 2) Si existe access_token → confirmamos con exchangeCodeForSession
-      if (access_token) {
-        const { error } = await supabase.auth.exchangeCodeForSession(access_token);
+      const error = params.get("error");
+      const type = params.get("type");
 
-        if (error) {
-          status.innerHTML = `<p class='error'>Error: ${error.message}</p>`;
-          actions.innerHTML = "<a class='button' href='index.html'>Ir al inicio</a>";
-          return;
-        }
-
-        status.innerHTML = "<p class='success'>¡Tu cuenta ha sido confirmada correctamente!</p>";
-        actions.innerHTML = "<a class='button' href='index.html'>Ir al inicio</a>";
+      if (error) {
+        status.innerHTML = `<p class="error">Hubo un error verificando tu cuenta.</p>`;
+        actions.innerHTML = `<a class="button" href="index.html">Volver al inicio</a>`;
         return;
       }
 
-      // 3) Si NO hay access_token, significa que Supabase ya confirmó la cuenta
-      //    (pero redirigió con ?error=true)
-      status.innerHTML = "<p class='success'>¡Tu cuenta ha sido confirmada correctamente!</p>";
-      actions.innerHTML = "<a class='button' href='index.html'>Ir al inicio</a>";
+      if (type === "signup") {
+        status.innerHTML = `<p class="success">¡Tu cuenta ha sido confirmada correctamente!</p>`;
+        actions.innerHTML = `<a class="button" href="index.html">Iniciar sesión</a>`;
+        return;
+      }
 
-      // 4) Limpiar la URL (quitar ?error=...)
-      history.replaceState({}, "", "confirm.html");
+      status.innerHTML = `<p class="error">No se detectó un estado válido.</p>`;
+      actions.innerHTML = `<a class="button" href="index.html">Volver al inicio</a>`;
     }
 
     runConfirm();
