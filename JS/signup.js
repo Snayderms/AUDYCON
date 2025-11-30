@@ -22,8 +22,7 @@ document.getElementById("signupBtn").addEventListener("click", async () => {
       password,
       options: {
         data: { full_name },
-        emailRedirectTo: "https://audycon.vercel.app/confirm.html",
-      },
+      }
     });
 
     if (error) {
