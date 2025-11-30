@@ -1,57 +1,29 @@
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Confirmación de cuenta</title>
-  <style>
-    .confirm-container{
-      width:360px;background:#fff;padding:28px;margin:120px auto;
-      border-radius:12px;box-shadow:0 0 18px rgba(0,0,0,0.08);text-align:center
-    }
-    .success{color:green;margin-top:10px}
-    .error{color:#b91c1c;margin-top:10px}
-    a.button{
-      display:inline-block;margin-top:14px;padding:10px 14px;border-radius:8px;
-      background:#007bff;color:#fff;text-decoration:none
-    }
-  </style>
-</head>
-<body>
-  <div class="confirm-container">
-    <h2>Confirmación de cuenta</h2>
-    <div id="status">Procesando confirmación...</div>
-    <div id="actions"></div>
-  </div>
+<script>
+  const status = document.getElementById("status");
+  const actions = document.getElementById("actions");
 
-  <script>
-    const status = document.getElementById("status");
-    const actions = document.getElementById("actions");
+  function runConfirm() {
+    // Supabase now returns query parameters (?foo=bar)
+    const params = new URLSearchParams(window.location.search);
 
-    function runConfirm() {
-      const hash = window.location.hash.substring(1);
-      const params = new URLSearchParams(hash);
+    const error = params.get("error");
+    const type = params.get("type");
 
-      const error = params.get("error");
-      const type = params.get("type");
-
-      if (error) {
-        status.innerHTML = `<p class="error">Hubo un error verificando tu cuenta.</p>`;
-        actions.innerHTML = `<a class="button" href="index.html">Volver al inicio</a>`;
-        return;
-      }
-
-      if (type === "signup") {
-        status.innerHTML = `<p class="success">¡Tu cuenta ha sido confirmada correctamente!</p>`;
-        actions.innerHTML = `<a class="button" href="index.html">Iniciar sesión</a>`;
-        return;
-      }
-
-      status.innerHTML = `<p class="error">No se detectó un estado válido.</p>`;
+    if (error) {
+      status.innerHTML = `<p class="error">Hubo un error verificando tu cuenta.</p>`;
       actions.innerHTML = `<a class="button" href="index.html">Volver al inicio</a>`;
+      return;
     }
 
-    runConfirm();
-  </script>
-</body>
-</html>
+    if (type === "signup") {
+      status.innerHTML = `<p class="success">¡Tu cuenta ha sido confirmada correctamente!</p>`;
+      actions.innerHTML = `<a class="button" href="index.html">Iniciar sesión</a>`;
+      return;
+    }
+
+    status.innerHTML = `<p class="error">No se detectó un estado válido.</p>`;
+    actions.innerHTML = `<a class="button" href="index.html">Volver al inicio</a>`;
+  }
+
+  runConfirm();
+</script>
