@@ -1,21 +1,12 @@
-// JS/admin.js — Panel ADMIN completo
+// JS/admin.js — Panel ADMIN con RPC get_all_users
 import { supabase } from "./ConexionSB.js";
 
-// Traer todos los usuarios
+// Obtener usuarios usando RPC (función SQL del backend)
 async function getUsers() {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select(`
-      user_id,
-      full_name,
-      role,
-      status,
-      created_at,
-      auth:auth.users(email)
-    `);
+  const { data, error } = await supabase.rpc("get_all_users");
 
   if (error) {
-    console.error("Error al obtener usuarios:", error);
+    console.error("Error al obtener usuarios (RPC):", error);
     return [];
   }
 
@@ -29,7 +20,7 @@ async function renderUsers() {
 
   const users = await getUsers();
 
-  if (!users.length) {
+  if (!users || users.length === 0) {
     table.innerHTML = `<tr><td colspan="4" class="p-4 text-center">No hay usuarios registrados.</td></tr>`;
     return;
   }
@@ -41,7 +32,7 @@ async function renderUsers() {
 
     row.innerHTML = `
       <td class="py-3 px-4">${u.full_name || "(Sin nombre)"}</td>
-      <td class="py-3 px-4">${u.auth?.email || ""}</td>
+      <td class="py-3 px-4">${u.email}</td>
       <td class="py-3 px-4 font-semibold">${u.role}</td>
 
       <td class="py-3 px-4">
@@ -109,7 +100,6 @@ async function deleteUser(user_id) {
   const confirmDelete = confirm("¿Seguro que deseas eliminar este usuario?");
   if (!confirmDelete) return;
 
-  // Borrar de auth.users
   const { error } = await supabase.auth.admin.deleteUser(user_id);
 
   if (error) {
@@ -122,9 +112,8 @@ async function deleteUser(user_id) {
   renderUsers();
 }
 
-// Asignar eventos dinámicos a la tabla
+// Asignar eventos
 function attachEvents() {
-  // Cambiar rol
   document.querySelectorAll(".role-select").forEach((select) => {
     select.addEventListener("change", async function () {
       const id = this.getAttribute("data-id");
@@ -133,14 +122,9 @@ function attachEvents() {
     });
   });
 
-  // Activar/suspender
   document.querySelectorAll(".status-btn").forEach((btn) => {
     btn.addEventListener("click", async function () {
       const id = this.getAttribute("data-id");
-
-      // Saber el estado actual
-      const parentRow = this.closest("tr");
-      const roleCol = parentRow.children[2]?.textContent;
 
       let currentSt =
         this.textContent.trim() === "Suspender" ? "ACTIVE" : "SUSPENDED";
@@ -149,7 +133,6 @@ function attachEvents() {
     });
   });
 
-  // Eliminar
   document.querySelectorAll(".delete-btn").forEach((btn) => {
     btn.addEventListener("click", async function () {
       const id = this.getAttribute("data-id");
@@ -158,7 +141,7 @@ function attachEvents() {
   });
 }
 
-// Validar que solo ADMIN entre
+// Validar ADMIN
 async function validateAdmin() {
   const { data: sessionData } = await supabase.auth.getSession();
   const user = sessionData?.session?.user;
