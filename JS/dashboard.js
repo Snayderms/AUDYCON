@@ -1,113 +1,145 @@
-// JS/dashboard.js
+// JS/dashboard.js — FASE 1 (seguridad + roles básicos)
 import { supabase } from "./ConexionSB.js";
 
-(async () => {
-  // 1. Verificar sesión
+// Función auxiliar para obtener sesión + perfil
+async function getSessionAndProfile() {
   const { data: sessionData, error: sError } = await supabase.auth.getSession();
-  const session = sessionData?.session;
 
-  if (sError || !session) {
+  if (sError) {
+    console.error("Error al obtener sesión:", sError);
+    return { session: null, user: null, profile: null };
+  }
+
+  const session = sessionData?.session;
+  const user = session?.user || null;
+
+  if (!session || !user) {
+    return { session: null, user: null, profile: null };
+  }
+
+  const { data: profile, error: pError } = await supabase
+    .from("profiles")
+    .select("full_name, role, status, created_at")
+    .eq("user_id", user.id)
+    .single();
+
+  if (pError) {
+    console.error("Error al obtener perfil:", pError);
+    return { session, user, profile: null };
+  }
+
+  return { session, user, profile };
+}
+
+function formatDate(dateString) {
+  if (!dateString) return "";
+  const d = new Date(dateString);
+  return d.toLocaleString();
+}
+
+(async () => {
+  const { session, user, profile } = await getSessionAndProfile();
+
+  if (!session || !user) {
+    // No hay sesión -> volver al login
     window.location.href = "login.html";
     return;
   }
 
-  const user = session.user;
-
-  // 2. Cargar perfil
-  const { data: profile, error: pError } = await supabase
-    .from("profiles")
-    .select("full_name, role, created_at")
-    .eq("user_id", user.id)
-    .single();
-
-  if (pError || !profile) {
-    console.error(pError);
-    alert("No se pudo cargar tu perfil.");
+  // Si no hay perfil, por ahora cerramos sesión
+  if (!profile) {
+    alert("No se pudo cargar tu perfil. Contacta con el administrador.");
     await supabase.auth.signOut();
     window.location.href = "login.html";
     return;
   }
 
-  const role = (profile.role || "CLIENTE").toUpperCase();
-  const fullName = profile.full_name || "Usuario";
-  const createdAt = profile.created_at
-    ? new Date(profile.created_at).toLocaleString()
-    : "";
-
-  const path = window.location.pathname.split("/").pop();
-
-  // 3. Protección por página
-  if ((path === "admin.html" || path === "logs.html") && role !== "ADMIN") {
-    // No es admin → lo mandamos al dashboard normal
-    window.location.href = "dashboard.html";
+  // Verificar estado
+  if (profile.status && profile.status !== "ACTIVE") {
+    alert("Tu cuenta está suspendida. Contacta con el administrador.");
+    await supabase.auth.signOut();
+    window.location.href = "login.html";
     return;
   }
 
-  // 4. Rellenar dashboard.html
-  if (path === "dashboard.html") {
-    const welcome = document.getElementById("welcome");
-    const info = document.getElementById("info");
-    const roleContent = document.getElementById("roleContent");
-    const navlinks = document.getElementById("navlinks");
+  const role = profile.role || "CLIENTE";
+  const fullName = profile.full_name || user.email;
+  const createdAt = profile.created_at || user.created_at;
 
-    if (welcome) {
-      welcome.textContent = `Hola ${fullName}, bienvenido a AUDYCON.`;
-    }
-    if (info) {
-      info.textContent = `Tu rol actual es: ${role}.`;
-    }
+  const path = window.location.pathname;
 
-    if (navlinks) {
+  // =======================
+  // DASHBOARD GENERAL
+  // =======================
+  if (path.endsWith("dashboard.html")) {
+    const titleEl = document.getElementById("title");
+    const subEl = document.getElementById("sub");
+    const welcomeEl = document.getElementById("welcome");
+    const infoEl = document.getElementById("info");
+    const roleContentEl = document.getElementById("roleContent");
+
+    if (titleEl) titleEl.textContent = "Panel principal";
+    if (subEl) subEl.textContent = `Sesión iniciada como ${user.email}`;
+    if (welcomeEl) welcomeEl.textContent = `Hola, ${fullName}`;
+    if (infoEl) infoEl.textContent = `Tu rol actual es: ${role}`;
+
+    if (roleContentEl) {
       if (role === "ADMIN") {
-        navlinks.innerHTML = `
-          <a href="dashboard.html">Inicio</a>
-          <a href="profile.html">Mi perfil</a>
-          <a href="admin.html">Admin</a>
-          <a href="logs.html">Logs</a>
-          <a href="settings.html">Ajustes</a>
-        `;
-      } else if (role === "JEFE" || role === "CONTADOR") {
-        navlinks.innerHTML = `
-          <a href="dashboard.html">Inicio</a>
-          <a href="profile.html">Mi perfil</a>
-          <a href="settings.html">Ajustes</a>
-        `;
-      } else {
-        // CLIENTE
-        navlinks.innerHTML = `
-          <a href="dashboard.html">Inicio</a>
-          <a href="profile.html">Mi perfil</a>
-        `;
-      }
-    }
-
-    if (roleContent) {
-      if (role === "ADMIN") {
-        roleContent.innerHTML = `
-          <h3>Panel ADMIN</h3>
-          <p class="muted">Control total del sistema.</p>
+        roleContentEl.innerHTML = `
+          <p>Tienes acceso completo al sistema.</p>
+          <ul>
+            <li>• Gestionar usuarios</li>
+            <li>• Cambiar roles</li>
+            <li>• Revisar logs del sistema</li>
+          </ul>
         `;
       } else if (role === "JEFE") {
-        roleContent.innerHTML = `
-          <h3>Panel JEFE</h3>
-          <p class="muted">Validación de acciones críticas y visión general.</p>
+        roleContentEl.innerHTML = `
+          <p>Acceso de Jefe contable.</p>
+          <p>Puedes supervisar contadores y revisar reportes generales.</p>
         `;
       } else if (role === "CONTADOR") {
-        roleContent.innerHTML = `
-          <h3>Panel CONTADOR</h3>
-          <p class="muted">Gestión contable operativa.</p>
+        roleContentEl.innerHTML = `
+          <p>Acceso de Contador.</p>
+          <p>Puedes gestionar clientes, documentos y reportes asignados.</p>
         `;
       } else {
-        roleContent.innerHTML = `
-          <h3>Panel CLIENTE</h3>
-          <p class="muted">Solo puedes ver información relacionada a tu empresa.</p>
+        roleContentEl.innerHTML = `
+          <p>Acceso de Cliente.</p>
+          <p>Aquí verás tu información contable y documentos cuando estén disponibles.</p>
         `;
       }
+    }
+
+    // Enlaces dinámicos de navegación
+    const navlinks = document.getElementById("navlinks");
+    if (navlinks) {
+      let linksHtml = `<a href="profile.html">Mi perfil</a>`;
+      if (role === "ADMIN" || role === "JEFE") {
+        linksHtml += `<a href="admin.html">Administración</a>`;
+        linksHtml += `<a href="logs.html">Logs</a>`;
+      }
+      navlinks.innerHTML = linksHtml;
     }
   }
 
-  // 5. Rellenar profile.html
-  if (path === "profile.html") {
+  // =======================
+  // ADMIN (solo ADMIN)
+  // =======================
+  if (path.endsWith("admin.html")) {
+    if (role !== "ADMIN") {
+      alert("No tienes permisos para acceder al panel de administrador.");
+      window.location.href = "dashboard.html";
+      return;
+    }
+    // El HTML de admin.html ya tiene la tabla.
+    // En la siguiente fase traeremos aquí la lista de usuarios real desde Supabase.
+  }
+
+  // =======================
+  // PERFIL
+  // =======================
+  if (path.endsWith("profile.html")) {
     const nameEl = document.getElementById("profile-name");
     const emailEl = document.getElementById("profile-email");
     const roleEl = document.getElementById("profile-role");
@@ -116,93 +148,43 @@ import { supabase } from "./ConexionSB.js";
     if (nameEl) nameEl.textContent = fullName;
     if (emailEl) emailEl.textContent = user.email;
     if (roleEl) roleEl.textContent = role;
-    if (createdEl) createdEl.textContent = createdAt;
+    if (createdEl) createdEl.textContent = formatDate(createdAt);
   }
 
-  // 6. Ajustes (settings.html)
-  if (path === "settings.html") {
-    const nameInput = document.getElementById("new-name");
-    const passInput = document.getElementById("new-password");
-    const saveNameBtn = document.getElementById("save-name");
-    const savePassBtn = document.getElementById("save-password");
-    const logoutBtn = document.getElementById("logout");
-
-    if (nameInput) nameInput.value = fullName;
-
-    if (saveNameBtn) {
-      saveNameBtn.addEventListener("click", async () => {
-        const newName = nameInput.value.trim();
-        if (!newName) return;
-
-        const { error } = await supabase
-          .from("profiles")
-          .update({ full_name: newName })
-          .eq("user_id", user.id);
-
-        if (error) {
-          alert("No se pudo actualizar el nombre.");
-        } else {
-          alert("Nombre actualizado.");
-        }
-      });
-    }
-
-    if (savePassBtn) {
-      savePassBtn.addEventListener("click", async () => {
-        const newPass = passInput.value;
-        if (!newPass || newPass.length < 8) {
-          alert("La contraseña debe tener al menos 8 caracteres.");
-          return;
-        }
-
-        const { error } = await supabase.auth.updateUser({
-          password: newPass,
-        });
-
-        if (error) {
-          alert("No se pudo actualizar la contraseña.");
-        } else {
-          alert("Contraseña actualizada.");
-        }
-      });
-    }
-
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", async () => {
-        await supabase.auth.signOut();
-        window.location.href = "login.html";
-      });
-    }
+  // =======================
+  // SETTINGS (solo protegida)
+  // =======================
+  if (path.endsWith("settings.html")) {
+    // En próxima fase conectaremos los botones para cambiar nombre y contraseña.
   }
 
-  // 7. Admin (admin.html) — listado de usuarios (si luego creas la vista)
-  if (path === "admin.html") {
-    const usersTable = document.getElementById("users-table");
-    if (usersTable) {
-      // Aquí luego podemos cargar una vista "profiles_with_email"
-      // De momento queda como placeholder
-      usersTable.innerHTML = `
-        <tr>
-          <td class="py-2 px-4" colspan="4">
-            Aquí podrás listar usuarios usando una vista en Supabase.
-          </td>
-        </tr>
-      `;
+  // =======================
+  // LOGS (solo ADMIN / JEFE)
+  // =======================
+  if (path.endsWith("logs.html")) {
+    if (role !== "ADMIN" && role !== "JEFE") {
+      alert("No tienes permisos para ver los logs.");
+      window.location.href = "dashboard.html";
+      return;
     }
-  }
 
-  // 8. Logs (logs.html)
-  if (path === "logs.html") {
     const logsContainer = document.getElementById("logs-container");
     if (logsContainer) {
       logsContainer.innerHTML = `
-        <p class="text-gray-500">Aquí se mostrarán logs del sistema (pendiente implementar tabla logs).</p>
+        <p class="text-gray-700">
+          En la siguiente fase se mostrarán aquí los logs del sistema
+          (inicio de sesión, cambios de rol, etc.).
+        </p>
       `;
     }
   }
 
-  // 9. Botón de logout general (si existe)
-  const logoutBtn = document.getElementById("logoutBtn");
+  // =======================
+  // LOGOUT (distintos IDs)
+  // =======================
+  const logoutBtn =
+    document.getElementById("logoutBtn") || document.getElementById("logout");
+
   if (logoutBtn) {
     logoutBtn.addEventListener("click", async () => {
       await supabase.auth.signOut();
