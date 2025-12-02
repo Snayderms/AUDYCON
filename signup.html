@@ -2,25 +2,32 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Registro - AUDYCON</title>
-  <link rel="stylesheet" href="./CSS/styles.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registrarse | AUDYCON</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
+<body class="bg-gray-100 flex justify-center items-center h-screen">
 
-<body>
-  <div class="login-container">
-    <h2>Crear cuenta</h2>
+  <div class="bg-white p-10 rounded-xl shadow-xl w-full max-w-md">
+    <h1 class="text-2xl font-bold mb-4 text-center">Crear cuenta</h1>
 
-    <input type="text" id="full_name" placeholder="Nombre completo" />
-    <input type="email" id="email" placeholder="Correo electrónico" />
-    <input type="password" id="password" placeholder="Contraseña (mín 8 caracteres)" />
+    <input id="first_name" class="input mb-3" placeholder="Nombre">
+    <input id="last_name" class="input mb-3" placeholder="Apellido">
+    <input id="phone" class="input mb-3" placeholder="Teléfono (opcional)">
+    <input id="company" class="input mb-3" placeholder="Empresa (opcional)">
+    <input id="email" class="input mb-3" placeholder="Correo">
+    <input id="password" type="password" class="input mb-3" placeholder="Contraseña">
 
-    <button id="signupBtn">Registrarme</button>
+    <button id="signup-btn" class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-800">
+      Registrarse
+    </button>
 
-    <p id="msg" class="muted"></p>
-
-    <p class="muted small">¿Ya tienes cuenta? <a href="index.html">Inicia sesión</a></p>
+    <p id="msg" class="text-center mt-4"></p>
   </div>
+
+  <style>
+    .input { width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; }
+  </style>
 
   <script type="module" src="./JS/signup.js"></script>
 </body>

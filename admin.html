@@ -29,6 +29,28 @@
       <tbody id="users-table"></tbody>
     </table>
   </div>
+  
+<div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+  <div class="bg-white p-6 rounded-xl w-96 shadow-lg">
+    <h2 class="text-xl font-bold mb-4">Editar Usuario</h2>
+
+    <input id="edit_first_name" class="modal-input mb-2" placeholder="Nombre">
+    <input id="edit_last_name" class="modal-input mb-2" placeholder="Apellido">
+    <input id="edit_phone" class="modal-input mb-2" placeholder="Teléfono">
+    <input id="edit_company" class="modal-input mb-2" placeholder="Empresa">
+
+    <button id="saveEdit" class="bg-green-600 text-white px-4 py-2 rounded">
+      Guardar
+    </button>
+    <button id="closeEdit" class="bg-gray-500 text-white px-4 py-2 rounded ml-2">
+      Cancelar
+    </button>
+  </div>
+</div>
+
+<style>
+  .modal-input { width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; }
+</style>
 
   <script type="module" src="./JS/admin.js"></script>
 </body>

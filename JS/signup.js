@@ -1,42 +1,56 @@
-// JS/signup.js
 import { supabase } from "./ConexionSB.js";
 
-document.getElementById("signupBtn").addEventListener("click", async () => {
-  const msg = document.getElementById("msg");
-  msg.textContent = "";
-  msg.style.color = "";
+const btn = document.getElementById("signup-btn");
+const msg = document.getElementById("msg");
 
-  const full_name = document.getElementById("full_name").value.trim();
+btn.addEventListener("click", async () => {
+  msg.textContent = "";
+  btn.disabled = true;
+
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
+  const first_name = document.getElementById("first_name").value.trim();
+  const last_name = document.getElementById("last_name").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const company = document.getElementById("company").value.trim();
 
-  if (!full_name || !email || !password) {
-    msg.textContent = "Rellena todos los campos.";
+  if (!email || !password || !first_name || !last_name) {
+    msg.textContent = "Completa todos los campos obligatorios.";
     msg.style.color = "red";
+    btn.disabled = false;
     return;
   }
 
-  try {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name },
-        emailRedirectTo: "https://audycon.vercel.app/confirm/"
-      }
-    });
+  // Crear usuario
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
 
-    if (error) {
-      msg.textContent = error.message;
-      msg.style.color = "red";
-      return;
-    }
-
-    msg.textContent = "Registro exitoso. Revisa tu correo.";
-    msg.style.color = "green";
-  } catch (e) {
-    console.error(e);
-    msg.textContent = "Ocurrió un error inesperado.";
+  if (error) {
+    msg.textContent = "Error: " + error.message;
     msg.style.color = "red";
+    btn.disabled = false;
+    return;
   }
+
+  const user = data.user;
+
+  // Crear perfil
+  if (user) {
+    await supabase.from("profiles").upsert({
+      user_id: user.id,
+      first_name,
+      last_name,
+      full_name: `${first_name} ${last_name}`,
+      phone,
+      company,
+      role: "CLIENTE",
+      status: "ACTIVE",
+    });
+  }
+
+  msg.textContent = "Cuenta creada. Revisa tu correo para confirmar.";
+  msg.style.color = "green";
+  btn.disabled = false;
 });

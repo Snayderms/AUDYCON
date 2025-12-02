@@ -1,27 +1,22 @@
-// JS/admin.js — Panel ADMIN con RPC get_all_users
+// JS/admin.js — Panel ADMIN con CRUD completo
 import { supabase } from "./ConexionSB.js";
 
-// Obtener usuarios usando RPC (función SQL del backend)
+// Obtener usuarios usando RPC
 async function getUsers() {
   const { data, error } = await supabase.rpc("get_all_users");
-
-  if (error) {
-    console.error("Error al obtener usuarios (RPC):", error);
-    return [];
-  }
-
+  if (error) return [];
   return data;
 }
 
-// Listar usuarios en la tabla
+// Listar usuarios
 async function renderUsers() {
   const table = document.getElementById("users-table");
-  table.innerHTML = `<tr><td colspan="4" class="p-4 text-center">Cargando...</td></tr>`;
+  table.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Cargando...</td></tr>`;
 
   const users = await getUsers();
 
-  if (!users || users.length === 0) {
-    table.innerHTML = `<tr><td colspan="4" class="p-4 text-center">No hay usuarios registrados.</td></tr>`;
+  if (!users.length) {
+    table.innerHTML = `<tr><td colspan="5" class="p-4 text-center">No hay usuarios registrados.</td></tr>`;
     return;
   }
 
@@ -52,9 +47,12 @@ async function renderUsers() {
         <button class="delete-btn ml-2 px-3 py-1 rounded bg-gray-600 text-white" data-id="${u.user_id}">
           Eliminar
         </button>
+
+        <button class="edit-btn ml-2 px-3 py-1 rounded bg-blue-500 text-white" data-id="${u.user_id}">
+          Editar
+        </button>
       </td>
     `;
-
     table.appendChild(row);
   });
 
@@ -63,93 +61,102 @@ async function renderUsers() {
 
 // Cambiar rol
 async function changeRole(user_id, newRole) {
-  const { error } = await supabase
-    .from("profiles")
-    .update({ role: newRole })
-    .eq("user_id", user_id);
-
-  if (error) {
-    alert("Error al cambiar rol");
-    console.error(error);
-  } else {
-    alert("Rol actualizado");
-    renderUsers();
-  }
+  await supabase.from("profiles").update({ role: newRole }).eq("user_id", user_id);
+  renderUsers();
 }
 
 // Activar / Suspender
 async function toggleStatus(user_id, currentStatus) {
   const newStatus = currentStatus === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
-
-  const { error } = await supabase
-    .from("profiles")
-    .update({ status: newStatus })
-    .eq("user_id", user_id);
-
-  if (error) {
-    alert("Error al actualizar estado");
-    console.error(error);
-  } else {
-    alert("Estado actualizado");
-    renderUsers();
-  }
+  await supabase.from("profiles").update({ status: newStatus }).eq("user_id", user_id);
+  renderUsers();
 }
 
 // Eliminar usuario
 async function deleteUser(user_id) {
-  const confirmDelete = confirm("¿Seguro que deseas eliminar este usuario?");
-  if (!confirmDelete) return;
-
-  const { error } = await supabase.auth.admin.deleteUser(user_id);
-
-  if (error) {
-    alert("No tienes permisos completos para eliminar usuarios.");
-    console.error(error);
-    return;
-  }
-
-  alert("Usuario eliminado");
+  if (!confirm("¿Seguro?")) return;
+  await supabase.auth.admin.deleteUser(user_id);
   renderUsers();
 }
 
-// Asignar eventos
+// —————— MODAL EDITAR USUARIO ——————
 function attachEvents() {
-  document.querySelectorAll(".role-select").forEach((select) => {
-    select.addEventListener("change", async function () {
+
+  // Editar usuario
+  document.querySelectorAll(".edit-btn").forEach((btn) => {
+    btn.addEventListener("click", async function () {
       const id = this.getAttribute("data-id");
-      const newRole = this.value;
-      await changeRole(id, newRole);
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", id)
+        .single();
+
+      document.getElementById("edit_first_name").value = data.first_name ?? "";
+      document.getElementById("edit_last_name").value = data.last_name ?? "";
+      document.getElementById("edit_phone").value = data.phone ?? "";
+      document.getElementById("edit_company").value = data.company ?? "";
+
+      document.getElementById("saveEdit").setAttribute("data-id", id);
+      document.getElementById("editModal").classList.remove("hidden");
     });
   });
 
+  document.getElementById("saveEdit").addEventListener("click", async function () {
+    const id = this.getAttribute("data-id");
+
+    const first_name = document.getElementById("edit_first_name").value;
+    const last_name = document.getElementById("edit_last_name").value;
+    const phone = document.getElementById("edit_phone").value;
+    const company = document.getElementById("edit_company").value;
+
+    await supabase
+      .from("profiles")
+      .update({
+        first_name,
+        last_name,
+        phone,
+        company,
+        full_name: `${first_name} ${last_name}`,
+      })
+      .eq("user_id", id);
+
+    document.getElementById("editModal").classList.add("hidden");
+    renderUsers();
+  });
+
+  document.getElementById("closeEdit").addEventListener("click", () => {
+    document.getElementById("editModal").classList.add("hidden");
+  });
+
+  // Rol
+  document.querySelectorAll(".role-select").forEach((s) => {
+    s.addEventListener("change", function () {
+      changeRole(this.getAttribute("data-id"), this.value);
+    });
+  });
+
+  // Suspender
   document.querySelectorAll(".status-btn").forEach((btn) => {
-    btn.addEventListener("click", async function () {
-      const id = this.getAttribute("data-id");
-
-      let currentSt =
-        this.textContent.trim() === "Suspender" ? "ACTIVE" : "SUSPENDED";
-
-      await toggleStatus(id, currentSt);
+    btn.addEventListener("click", function () {
+      const current = this.textContent.trim() === "Suspender" ? "ACTIVE" : "SUSPENDED";
+      toggleStatus(this.getAttribute("data-id"), current);
     });
   });
 
+  // Eliminar
   document.querySelectorAll(".delete-btn").forEach((btn) => {
-    btn.addEventListener("click", async function () {
-      const id = this.getAttribute("data-id");
-      await deleteUser(id);
-    });
+    btn.addEventListener("click", () => deleteUser(btn.getAttribute("data-id")));
   });
 }
 
 // Validar ADMIN
-async function validateAdmin() {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const user = sessionData?.session?.user;
+(async () => {
+  const { data: session } = await supabase.auth.getSession();
+  const user = session?.session?.user;
 
-  if (!user) {
-    window.location.href = "login.html";
-    return;
-  }
+  if (!user) return (window.location.href = "login.html");
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -157,12 +164,8 @@ async function validateAdmin() {
     .eq("user_id", user.id)
     .single();
 
-  if (!profile || profile.role !== "ADMIN") {
+  if (!profile || profile.role !== "ADMIN")
     window.location.href = "dashboard.html";
-  }
-}
 
-(async () => {
-  await validateAdmin();
-  await renderUsers();
+  renderUsers();
 })();
