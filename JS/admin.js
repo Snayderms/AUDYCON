@@ -1,22 +1,65 @@
-// JS/admin.js — Panel ADMIN con CRUD completo
+// JS/admin.js — Panel ADMIN con búsqueda, filtro, modal y toast
 import { supabase } from "./ConexionSB.js";
 
-// Obtener usuarios usando RPC
+let allUsers = []; // todos los usuarios en memoria
+
+// =========================
+// OBTENER USUARIOS (RPC)
+// =========================
 async function getUsers() {
   const { data, error } = await supabase.rpc("get_all_users");
-  if (error) return [];
+  if (error) {
+    console.error("Error al obtener usuarios:", error);
+    return [];
+  }
   return data;
 }
 
-// Listar usuarios
-async function renderUsers() {
-  const table = document.getElementById("users-table");
-  table.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Cargando...</td></tr>`;
+// =========================
+// CARGAR Y APLICAR FILTROS
+// =========================
+async function loadAndRenderUsers() {
+  allUsers = await getUsers();
+  applyFilters();
+}
 
-  const users = await getUsers();
+// =========================
+// APLICAR BUSCADOR + FILTRO
+// =========================
+function applyFilters() {
+  const searchInput = document.getElementById("searchUser");
+  const filterRole = document.getElementById("filterRole");
+
+  const text = (searchInput?.value || "").toLowerCase();
+  const role = filterRole?.value || "ALL";
+
+  let filtered = allUsers;
+
+  // Filtro por texto (nombre o correo)
+  if (text) {
+    filtered = filtered.filter((u) => {
+      const name = (u.full_name || "").toLowerCase();
+      const email = (u.email || "").toLowerCase();
+      return name.includes(text) || email.includes(text);
+    });
+  }
+
+  // Filtro por rol
+  if (role !== "ALL") {
+    filtered = filtered.filter((u) => u.role === role);
+  }
+
+  renderTable(filtered);
+}
+
+// =========================
+// RENDER TABLA
+// =========================
+function renderTable(users) {
+  const table = document.getElementById("users-table");
 
   if (!users.length) {
-    table.innerHTML = `<tr><td colspan="5" class="p-4 text-center">No hay usuarios registrados.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="4" class="p-4 text-center">No hay usuarios que coincidan.</td></tr>`;
     return;
   }
 
@@ -30,27 +73,29 @@ async function renderUsers() {
       <td class="py-3 px-4">${u.email}</td>
       <td class="py-3 px-4 font-semibold">${u.role}</td>
 
-      <td class="py-3 px-4">
-        <select class="role-select border p-1 rounded" data-id="${u.user_id}">
+      <td class="py-3 px-4 flex flex-wrap gap-2">
+
+        <select class="role-select border p-1 rounded text-sm" data-id="${u.user_id}">
           <option ${u.role === "ADMIN" ? "selected" : ""}>ADMIN</option>
           <option ${u.role === "JEFE" ? "selected" : ""}>JEFE</option>
           <option ${u.role === "CONTADOR" ? "selected" : ""}>CONTADOR</option>
           <option ${u.role === "CLIENTE" ? "selected" : ""}>CLIENTE</option>
         </select>
 
-        <button class="status-btn ml-2 px-3 py-1 rounded text-white ${
+        <button class="status-btn px-3 py-1 rounded text-white text-sm ${
           u.status === "ACTIVE" ? "bg-red-500" : "bg-green-500"
         }" data-id="${u.user_id}">
           ${u.status === "ACTIVE" ? "Suspender" : "Activar"}
         </button>
 
-        <button class="delete-btn ml-2 px-3 py-1 rounded bg-gray-600 text-white" data-id="${u.user_id}">
+        <button class="delete-btn px-3 py-1 rounded bg-gray-600 text-white text-sm" data-id="${u.user_id}">
           Eliminar
         </button>
 
-        <button class="edit-btn ml-2 px-3 py-1 rounded bg-blue-500 text-white" data-id="${u.user_id}">
+        <button class="edit-btn px-3 py-1 rounded bg-blue-600 text-white text-sm" data-id="${u.user_id}">
           Editar
         </button>
+
       </td>
     `;
     table.appendChild(row);
@@ -59,104 +104,194 @@ async function renderUsers() {
   attachEvents();
 }
 
-// Cambiar rol
-async function changeRole(user_id, newRole) {
-  await supabase.from("profiles").update({ role: newRole }).eq("user_id", user_id);
-  renderUsers();
+// =========================
+// MOSTRAR MODAL
+// =========================
+function openEditModal(user) {
+  document.getElementById("edit_user_id").value = user.user_id;
+  document.getElementById("edit_first_name").value = user.first_name || "";
+  document.getElementById("edit_last_name").value = user.last_name || "";
+  document.getElementById("edit_phone").value = user.phone || "";
+  document.getElementById("edit_company").value = user.company || "";
+  document.getElementById("edit_role").value = user.role;
+  document.getElementById("edit_status").value = user.status;
+
+  document.getElementById("editModal").classList.remove("hidden");
 }
 
-// Activar / Suspender
-async function toggleStatus(user_id, currentStatus) {
-  const newStatus = currentStatus === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
-  await supabase.from("profiles").update({ status: newStatus }).eq("user_id", user_id);
-  renderUsers();
+// =========================
+// CERRAR MODAL
+// =========================
+document.getElementById("closeModal").addEventListener("click", () => {
+  document.getElementById("editModal").classList.add("hidden");
+});
+
+// =========================
+// GUARDAR CAMBIOS DEL MODAL
+// =========================
+document.getElementById("editUserForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const btn = document.getElementById("saveEdit");
+  btn.disabled = true;
+  btn.textContent = "Guardando...";
+
+  const user_id = document.getElementById("edit_user_id").value;
+
+  const updatedData = {
+    first_name: document.getElementById("edit_first_name").value,
+    last_name: document.getElementById("edit_last_name").value,
+    phone: document.getElementById("edit_phone").value,
+    company: document.getElementById("edit_company").value,
+    role: document.getElementById("edit_role").value,
+    status: document.getElementById("edit_status").value,
+    full_name:
+      document.getElementById("edit_first_name").value +
+      " " +
+      document.getElementById("edit_last_name").value,
+  };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update(updatedData)
+    .eq("user_id", user_id);
+
+  btn.disabled = false;
+  btn.textContent = "Guardar cambios";
+
+  if (error) {
+    alert("Error al actualizar usuario.");
+    console.error(error);
+    return;
+  }
+
+  showToast("Usuario actualizado correctamente");
+  document.getElementById("editModal").classList.add("hidden");
+  await loadAndRenderUsers();
+});
+
+// =========================
+// TOAST DE ÉXITO
+// =========================
+function showToast(text) {
+  const toast = document.getElementById("toastSuccess");
+  toast.textContent = text;
+  toast.classList.remove("hidden");
+
+  setTimeout(() => {
+    toast.classList.add("hidden");
+  }, 2500);
 }
 
-// Eliminar usuario
-async function deleteUser(user_id) {
-  if (!confirm("¿Seguro?")) return;
-  await supabase.auth.admin.deleteUser(user_id);
-  renderUsers();
-}
-
-// —————— MODAL EDITAR USUARIO ——————
+// =========================
+// EVENTOS DINÁMICOS
+// =========================
 function attachEvents() {
-
-  // Editar usuario
-  document.querySelectorAll(".edit-btn").forEach((btn) => {
-    btn.addEventListener("click", async function () {
-      const id = this.getAttribute("data-id");
-
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", id)
-        .single();
-
-      document.getElementById("edit_first_name").value = data.first_name ?? "";
-      document.getElementById("edit_last_name").value = data.last_name ?? "";
-      document.getElementById("edit_phone").value = data.phone ?? "";
-      document.getElementById("edit_company").value = data.company ?? "";
-
-      document.getElementById("saveEdit").setAttribute("data-id", id);
-      document.getElementById("editModal").classList.remove("hidden");
-    });
-  });
-
-  document.getElementById("saveEdit").addEventListener("click", async function () {
-    const id = this.getAttribute("data-id");
-
-    const first_name = document.getElementById("edit_first_name").value;
-    const last_name = document.getElementById("edit_last_name").value;
-    const phone = document.getElementById("edit_phone").value;
-    const company = document.getElementById("edit_company").value;
-
-    await supabase
-      .from("profiles")
-      .update({
-        first_name,
-        last_name,
-        phone,
-        company,
-        full_name: `${first_name} ${last_name}`,
-      })
-      .eq("user_id", id);
-
-    document.getElementById("editModal").classList.add("hidden");
-    renderUsers();
-  });
-
-  document.getElementById("closeEdit").addEventListener("click", () => {
-    document.getElementById("editModal").classList.add("hidden");
-  });
-
-  // Rol
+  // Cambiar rol
   document.querySelectorAll(".role-select").forEach((s) => {
     s.addEventListener("change", function () {
-      changeRole(this.getAttribute("data-id"), this.value);
+      changeRole(this.dataset.id, this.value);
     });
   });
 
-  // Suspender
+  // Cambiar estado
   document.querySelectorAll(".status-btn").forEach((btn) => {
     btn.addEventListener("click", function () {
       const current = this.textContent.trim() === "Suspender" ? "ACTIVE" : "SUSPENDED";
-      toggleStatus(this.getAttribute("data-id"), current);
+      toggleStatus(this.dataset.id, current);
     });
   });
 
   // Eliminar
   document.querySelectorAll(".delete-btn").forEach((btn) => {
-    btn.addEventListener("click", () => deleteUser(btn.getAttribute("data-id")));
+    btn.addEventListener("click", () => deleteUser(btn.dataset.id));
+  });
+
+  // Editar
+  document.querySelectorAll(".edit-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+
+      const { data: user } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", id)
+        .single();
+
+      openEditModal(user);
+    });
   });
 }
 
-// Validar ADMIN
-(async () => {
-  const { data: session } = await supabase.auth.getSession();
-  const user = session?.session?.user;
+// =========================
+// CAMBIAR ROL
+// =========================
+async function changeRole(user_id, newRole) {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ role: newRole })
+    .eq("user_id", user_id);
 
-  if (!user) return (window.location.href = "login.html");
+  if (error) {
+    alert("Error al cambiar rol");
+    console.error(error);
+    return;
+  }
+
+  showToast("Rol actualizado");
+  await loadAndRenderUsers();
+}
+
+// =========================
+// CAMBIAR ESTADO
+// =========================
+async function toggleStatus(user_id, currentStatus) {
+  const newStatus = currentStatus === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ status: newStatus })
+    .eq("user_id", user_id);
+
+  if (error) {
+    alert("Error al actualizar estado");
+    console.error(error);
+    return;
+  }
+
+  showToast("Estado actualizado");
+  await loadAndRenderUsers();
+}
+
+// =========================
+// ELIMINAR USUARIO
+// =========================
+async function deleteUser(user_id) {
+  if (!confirm("¿Seguro que deseas eliminar este usuario?")) return;
+
+  const { error } = await supabase.auth.admin.deleteUser(user_id);
+
+  if (error) {
+    alert("No se pudo eliminar el usuario.");
+    console.error(error);
+    return;
+  }
+
+  showToast("Usuario eliminado");
+  await loadAndRenderUsers();
+}
+
+// =========================
+// VALIDAR ADMIN
+// =========================
+async function validateAdmin() {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const user = sessionData?.session?.user;
+
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -164,8 +299,23 @@ function attachEvents() {
     .eq("user_id", user.id)
     .single();
 
-  if (!profile || profile.role !== "ADMIN")
+  if (!profile || profile.role !== "ADMIN") {
     window.location.href = "dashboard.html";
+  }
+}
 
-  renderUsers();
+// =========================
+// INICIALIZACIÓN
+// =========================
+(async () => {
+  await validateAdmin();
+
+  // Eventos del buscador y filtro
+  const searchInput = document.getElementById("searchUser");
+  const filterRole = document.getElementById("filterRole");
+
+  searchInput?.addEventListener("input", applyFilters);
+  filterRole?.addEventListener("change", applyFilters);
+
+  await loadAndRenderUsers();
 })();
