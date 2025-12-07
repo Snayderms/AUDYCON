@@ -1,5 +1,5 @@
 export const config = {
-  runtime: "nodejs18.x"
+  runtime: "nodejs"
 };
 
 import { createClient } from "@supabase/supabase-js";
@@ -19,7 +19,10 @@ export default async function handler(req, res) {
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
     {
-      auth: { autoRefreshToken: false, persistSession: false }
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
     }
   );
 
