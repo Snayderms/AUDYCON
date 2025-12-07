@@ -269,23 +269,23 @@ async function toggleStatus(user_id, currentStatus) {
 async function deleteUser(user_id) {
   if (!confirm("¿Seguro que deseas eliminar este usuario?")) return;
 
-  const response = await fetch('/api/delete-user', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id }),
+  const response = await fetch("/api/delete-user", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id })
   });
 
-  const data = await response.json();
+  const result = await response.json();
 
   if (!response.ok) {
-    alert(data.error || "No se pudo eliminar el usuario.");
+    alert("No se pudo eliminar el usuario.");
+    console.error(result);
     return;
   }
 
-  alert("Usuario eliminado correctamente");
+  alert("Usuario eliminado correctamente.");
   renderUsers();
 }
-
 
 // =========================
 // VALIDAR ADMIN
