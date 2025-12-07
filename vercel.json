@@ -1,7 +1,13 @@
 {
-  "functions": {
-    "api/delete-user.js": {
-      "runtime": "edge"
-    }
-  }
+  "version": 2,
+  "builds": [
+    { "src": "api/delete-user.js", "use": "@vercel/node" },
+    { "src": "*.html", "use": "@vercel/static" },
+    { "src": "CSS/*", "use": "@vercel/static" },
+    { "src": "img/*", "use": "@vercel/static" },
+    { "src": "JS/*", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/delete-user", "dest": "/api/delete-user.js" }
+  ]
 }
