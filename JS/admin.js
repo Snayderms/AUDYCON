@@ -269,17 +269,27 @@ async function toggleStatus(user_id, currentStatus) {
 async function deleteUser(user_id) {
   if (!confirm("¿Seguro que deseas eliminar este usuario?")) return;
 
-  const { error } = await supabase.auth.admin.deleteUser(user_id);
+  const res = await fetch("/api/deleteUser", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user_id,
+      admin_token: "AudyconAdmin2025" // este token lo comparará el backend
+    })
+  });
 
-  if (error) {
+  const data = await res.json();
+
+  if (!data.success) {
     alert("No se pudo eliminar el usuario.");
-    console.error(error);
+    console.error(data.error);
     return;
   }
 
   showToast("Usuario eliminado");
   await loadAndRenderUsers();
 }
+
 
 // =========================
 // VALIDAR ADMIN
