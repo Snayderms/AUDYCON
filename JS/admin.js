@@ -269,25 +269,21 @@ async function toggleStatus(user_id, currentStatus) {
 async function deleteUser(user_id) {
   if (!confirm("¿Seguro que deseas eliminar este usuario?")) return;
 
-  const res = await fetch("/api/deleteUser", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      user_id,
-      admin_token: "AudyconAdmin2025" // este token lo comparará el backend
-    })
+  const response = await fetch('/api/delete-user', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id }),
   });
 
-  const data = await res.json();
+  const data = await response.json();
 
-  if (!data.success) {
-    alert("No se pudo eliminar el usuario.");
-    console.error(data.error);
+  if (!response.ok) {
+    alert(data.error || "No se pudo eliminar el usuario.");
     return;
   }
 
-  showToast("Usuario eliminado");
-  await loadAndRenderUsers();
+  alert("Usuario eliminado correctamente");
+  renderUsers();
 }
 
 
