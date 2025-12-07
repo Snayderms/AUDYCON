@@ -1,24 +1,18 @@
-import { createClient } from "@supabase/supabase-js";
-
 export const config = {
-  runtime: "edge"
+  runtime: "nodejs18.x"
 };
 
-export default async function handler(req) {
+import { createClient } from "@supabase/supabase-js";
+
+export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: "Método no permitido" }),
-      { status: 405, headers: { "Content-Type": "application/json" } }
-    );
+    return res.status(405).json({ error: "Método no permitido" });
   }
 
-  const { user_id } = await req.json();
+  const { user_id } = req.body;
 
   if (!user_id) {
-    return new Response(
-      JSON.stringify({ error: "Falta user_id" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
+    return res.status(400).json({ error: "Falta user_id" });
   }
 
   const supabase = createClient(
@@ -32,15 +26,9 @@ export default async function handler(req) {
   const { error } = await supabase.auth.admin.deleteUser(user_id);
 
   if (error) {
-    console.error("Delete error:", error);
-    return new Response(
-      JSON.stringify({ error: "No se pudo eliminar el usuario" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    console.error("ERROR:", error);
+    return res.status(500).json({ error: "No se pudo eliminar el usuario." });
   }
 
-  return new Response(
-    JSON.stringify({ message: "Usuario eliminado correctamente" }),
-    { status: 200, headers: { "Content-Type": "application/json" } }
-  );
+  return res.status(200).json({ message: "Usuario eliminado correctamente." });
 }
