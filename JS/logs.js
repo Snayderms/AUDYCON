@@ -5,7 +5,9 @@ let page = 1;
 const pageSize = 20;
 
 async function validateAdmin() {
-  const { data: sessionData } = await supabase.auth.getSession();
+  const { data: sessionData, error: sesErr } = await supabase.auth.getSession();
+  if (sesErr) console.error("Session error:", sesErr);
+
   const user = sessionData?.session?.user;
 
   if (!user) {
@@ -13,11 +15,17 @@ async function validateAdmin() {
     return false;
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("role")
     .eq("user_id", user.id)
     .single();
+
+  if (error) {
+    console.error("Error leyendo profile:", error?.message, error);
+    window.location.href = "dashboard.html";
+    return false;
+  }
 
   if (!profile || profile.role !== "ADMIN") {
     window.location.href = "dashboard.html";
@@ -31,7 +39,8 @@ async function getLogsPaged() {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  const { data, error } = await supabase
+  // 1) Intento con JOIN (nombres/emails)
+  let { data, error } = await supabase
     .from("logs")
     .select(`
       id, action, detail, created_at, performed_by, target_user,
@@ -41,12 +50,23 @@ async function getLogsPaged() {
     .order("created_at", { ascending: false })
     .range(from, to);
 
-  if (error) {
-    console.error("Error cargando logs:", error);
+  if (!error) return data || [];
+
+  console.error("Error cargando logs (JOIN):", error?.message, error);
+
+  // 2) Fallback sin JOIN (por si el nombre del FK/relación falla)
+  const fallback = await supabase
+    .from("logs")
+    .select("id, action, detail, created_at, performed_by, target_user")
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  if (fallback.error) {
+    console.error("Error cargando logs (fallback):", fallback.error?.message, fallback.error);
     return [];
   }
 
-  return data || [];
+  return fallback.data || [];
 }
 
 function formatDate(ts) {
@@ -63,7 +83,9 @@ function applyFilters() {
 
   let filtered = allLogs;
 
-  if (action !== "ALL") filtered = filtered.filter((l) => l.action === action);
+  if (action !== "ALL") {
+    filtered = filtered.filter((l) => l.action === action);
+  }
 
   if (q) {
     filtered = filtered.filter((l) => {
@@ -84,6 +106,7 @@ function renderTable(logs) {
 
   if (!logs.length) {
     table.innerHTML = `<tr><td colspan="5" class="p-4 text-center">No hay logs para mostrar.</td></tr>`;
+    document.getElementById("pageInfo").textContent = `Página ${page}`;
     return;
   }
 
