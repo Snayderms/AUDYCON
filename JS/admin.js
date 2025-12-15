@@ -275,18 +275,19 @@ async function deleteUser(user_id) {
     body: JSON.stringify({ user_id })
   });
 
-  const result = await response.json();
+  const text = await response.text();
+  let result = {};
+  try { result = JSON.parse(text); } catch { result = { raw: text }; }
 
   if (!response.ok) {
-    alert("No se pudo eliminar el usuario.");
-    console.error(result);
+    alert(result.error || "No se pudo eliminar el usuario.");
+    console.error("Delete error:", result);
     return;
   }
 
   alert("Usuario eliminado correctamente.");
-  renderUsers();
+  await loadAndRenderUsers(); // ✅ esta sí existe
 }
-
 // =========================
 // VALIDAR ADMIN
 // =========================
