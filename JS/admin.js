@@ -298,7 +298,7 @@ async function deleteUser(user_id) {
 
   if (!response.ok) {
     alert(result.error || "No se pudo eliminar el usuario.");
-    console.error("Delete error:", result);
+    console.error("Delete error:", result, "status:", response.status);
     return;
   }
 

@@ -18,39 +18,30 @@ export default async function handler(req, res) {
 
     if (!url || !serviceKey) {
       return res.status(500).json({
-        error: "Faltan variables SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY",
+        error: "Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY",
       });
     }
 
-    // 🔐 Cliente admin
+    // Cliente admin (service role)
     const supabase = createClient(url, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    /* ================================
-       BLOQUEAR AUTO-ELIMINACIÓN
-    ================================= */
+    /* ========= identificar quién ejecuta (si hay token) ========= */
+    let performedBy = null;
     const authHeader = req.headers.authorization || "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : null;
 
     if (token) {
       const { data, error } = await supabase.auth.getUser(token);
-      const currentUserId = data?.user?.id;
-
-      if (error) {
-        return res.status(401).json({ error: "Token inválido" });
-      }
-
-      if (currentUserId === user_id) {
-        return res.status(400).json({
-          error: "No puedes eliminar tu propio usuario",
-        });
+      if (!error) {
+        performedBy = data?.user?.id || null;
       }
     }
 
-    /* ================================
-       CHECK: NO ELIMINAR ÚLTIMO ADMIN
-    ================================= */
+    /* ========= CHECK: NO ELIMINAR ÚLTIMO ADMIN ========= */
     const { data: targetProfile, error: targetErr } = await supabase
       .from("profiles")
       .select("role")
@@ -77,23 +68,27 @@ export default async function handler(req, res) {
 
       if ((count || 0) <= 1) {
         return res.status(400).json({
-          error: "No puedes eliminar al último ADMIN del sistema",
+          error: "No puedes eliminar al último ADMIN",
         });
       }
     }
 
-    /* ================================
-       ELIMINAR USUARIO
-    ================================= */
-    const { error } = await supabase.auth.admin.deleteUser(user_id);
-
-    if (error) {
-      console.error("ERROR deleteUser:", error);
-      return res.status(400).json({ error: error.message });
+    /* ========= ELIMINAR USUARIO ========= */
+    const { error: delErr } = await supabase.auth.admin.deleteUser(user_id);
+    if (delErr) {
+      return res.status(400).json({ error: delErr.message });
     }
 
-    // Opcional: limpiar perfil si no hay cascade
+    // Limpiar perfil si no hay cascade
     await supabase.from("profiles").delete().eq("user_id", user_id);
+
+    /* ========= LOG ========= */
+    await supabase.from("logs").insert({
+      action: "DELETE_USER",
+      performed_by: performedBy,
+      target_user: user_id,
+      detail: { source: "admin_panel" },
+    });
 
     return res.status(200).json({
       ok: true,
@@ -104,23 +99,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: String(e?.message || e) });
   }
 }
-// === LOG DE AUDITORÍA ===
-let performedBy = null;
-
-const authHeader = req.headers.authorization || "";
-const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
-
-if (token) {
-  const { data } = await supabase.auth.getUser(token);
-  performedBy = data?.user?.id || null;
-}
-
-await supabase.from("logs").insert({
-  action: "DELETE_USER",
-  performed_by: performedBy,
-  target_user: user_id,
-  detail: {
-    source: "admin_panel",
-    description: "Usuario eliminado desde panel admin"
-  }
-});
