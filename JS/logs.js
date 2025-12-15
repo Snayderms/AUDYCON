@@ -33,7 +33,12 @@ async function getLogsPaged() {
 
   const { data, error } = await supabase
     .from("logs")
-    .select("id, action, detail, created_at, performed_by, target_user")
+    .select(`
+  id, action, detail, created_at, performed_by, target_user,
+  performer:profiles!logs_performed_by_fkey(full_name, email),
+  target:profiles!logs_target_user_fkey(full_name, email)
+`)
+
     .order("created_at", { ascending: false })
     .range(from, to);
 
@@ -84,16 +89,28 @@ function renderTable(logs) {
 
   table.innerHTML = "";
 
-  logs.forEach(l => {
+  logs.forEach((l) => {
     const row = document.createElement("tr");
-    const detailText = typeof l.detail === "string" ? l.detail : JSON.stringify(l.detail || {});
+
+    const performerName =
+      l.performer?.full_name || l.performer?.email || l.performed_by || "-";
+
+    const targetName =
+      l.target?.full_name || l.target?.email || l.target_user || "-";
+
+    const detailText =
+      l.detail?.description ||
+      l.detail?.source ||
+      (typeof l.detail === "string" ? l.detail : JSON.stringify(l.detail || {}));
+
     row.innerHTML = `
       <td class="p-2 border">${formatDate(l.created_at)}</td>
       <td class="p-2 border font-semibold">${l.action || ""}</td>
-      <td class="p-2 border">${l.performed_by || "-"}</td>
-      <td class="p-2 border">${l.target_user || "-"}</td>
+      <td class="p-2 border">${performerName}</td>
+      <td class="p-2 border">${targetName}</td>
       <td class="p-2 border">${detailText}</td>
     `;
+
     table.appendChild(row);
   });
 

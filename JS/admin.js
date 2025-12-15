@@ -12,7 +12,7 @@ async function getUsers() {
     console.error("Error al obtener usuarios:", error);
     return [];
   }
-  return data || [];
+  return (data || []).filter(u => u.status !== "DELETED");  
 }
 
 // =========================

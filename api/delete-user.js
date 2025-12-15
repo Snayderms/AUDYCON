@@ -80,14 +80,19 @@ export default async function handler(req, res) {
     }
 
     // Limpiar perfil si no hay cascade
-    await supabase.from("profiles").delete().eq("user_id", user_id);
+    await supabase
+      .from("profiles")
+      .update({ status: "DELETED" })
+      .eq("user_id", user_id);
 
     /* ========= LOG ========= */
     await supabase.from("logs").insert({
       action: "DELETE_USER",
       performed_by: performedBy,
       target_user: user_id,
-      detail: { source: "admin_panel" },
+      detail: {
+        source: "admin_panel",
+        description: "Usuario eliminado desde panel admin"}
     });
 
     return res.status(200).json({
