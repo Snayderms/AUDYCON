@@ -12,7 +12,7 @@ async function getUsers() {
     console.error("Error al obtener usuarios:", error);
     return [];
   }
-  return data;
+  return data || [];
 }
 
 // =========================
@@ -57,6 +57,7 @@ function applyFilters() {
 // =========================
 function renderTable(users) {
   const table = document.getElementById("users-table");
+  if (!table) return;
 
   if (!users.length) {
     table.innerHTML = `<tr><td colspan="4" class="p-4 text-center">No hay usuarios que coincidan.</td></tr>`;
@@ -70,16 +71,16 @@ function renderTable(users) {
 
     row.innerHTML = `
       <td class="py-3 px-4">${u.full_name || "(Sin nombre)"}</td>
-      <td class="py-3 px-4">${u.email}</td>
-      <td class="py-3 px-4 font-semibold">${u.role}</td>
+      <td class="py-3 px-4">${u.email || ""}</td>
+      <td class="py-3 px-4 font-semibold">${u.role || ""}</td>
 
       <td class="py-3 px-4 flex flex-wrap gap-2">
 
         <select class="role-select border p-1 rounded text-sm" data-id="${u.user_id}">
-          <option ${u.role === "ADMIN" ? "selected" : ""}>ADMIN</option>
-          <option ${u.role === "JEFE" ? "selected" : ""}>JEFE</option>
-          <option ${u.role === "CONTADOR" ? "selected" : ""}>CONTADOR</option>
-          <option ${u.role === "CLIENTE" ? "selected" : ""}>CLIENTE</option>
+          <option value="ADMIN" ${u.role === "ADMIN" ? "selected" : ""}>ADMIN</option>
+          <option value="JEFE" ${u.role === "JEFE" ? "selected" : ""}>JEFE</option>
+          <option value="CONTADOR" ${u.role === "CONTADOR" ? "selected" : ""}>CONTADOR</option>
+          <option value="CLIENTE" ${u.role === "CLIENTE" ? "selected" : ""}>CLIENTE</option>
         </select>
 
         <button class="status-btn px-3 py-1 rounded text-white text-sm ${
@@ -98,6 +99,7 @@ function renderTable(users) {
 
       </td>
     `;
+
     table.appendChild(row);
   });
 
@@ -113,8 +115,8 @@ function openEditModal(user) {
   document.getElementById("edit_last_name").value = user.last_name || "";
   document.getElementById("edit_phone").value = user.phone || "";
   document.getElementById("edit_company").value = user.company || "";
-  document.getElementById("edit_role").value = user.role;
-  document.getElementById("edit_status").value = user.status;
+  document.getElementById("edit_role").value = user.role || "CLIENTE";
+  document.getElementById("edit_status").value = user.status || "ACTIVE";
 
   document.getElementById("editModal").classList.remove("hidden");
 }
@@ -122,33 +124,35 @@ function openEditModal(user) {
 // =========================
 // CERRAR MODAL
 // =========================
-document.getElementById("closeModal").addEventListener("click", () => {
-  document.getElementById("editModal").classList.add("hidden");
+document.getElementById("closeModal")?.addEventListener("click", () => {
+  document.getElementById("editModal")?.classList.add("hidden");
 });
 
 // =========================
 // GUARDAR CAMBIOS DEL MODAL
 // =========================
-document.getElementById("editUserForm").addEventListener("submit", async (e) => {
+document.getElementById("editUserForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   const btn = document.getElementById("saveEdit");
+  if (!btn) return;
+
   btn.disabled = true;
   btn.textContent = "Guardando...";
 
   const user_id = document.getElementById("edit_user_id").value;
 
+  const first = document.getElementById("edit_first_name").value;
+  const last = document.getElementById("edit_last_name").value;
+
   const updatedData = {
-    first_name: document.getElementById("edit_first_name").value,
-    last_name: document.getElementById("edit_last_name").value,
+    first_name: first,
+    last_name: last,
     phone: document.getElementById("edit_phone").value,
     company: document.getElementById("edit_company").value,
     role: document.getElementById("edit_role").value,
     status: document.getElementById("edit_status").value,
-    full_name:
-      document.getElementById("edit_first_name").value +
-      " " +
-      document.getElementById("edit_last_name").value,
+    full_name: `${first} ${last}`.trim(),
   };
 
   const { error } = await supabase
@@ -166,7 +170,7 @@ document.getElementById("editUserForm").addEventListener("submit", async (e) => 
   }
 
   showToast("Usuario actualizado correctamente");
-  document.getElementById("editModal").classList.add("hidden");
+  document.getElementById("editModal")?.classList.add("hidden");
   await loadAndRenderUsers();
 });
 
@@ -175,12 +179,12 @@ document.getElementById("editUserForm").addEventListener("submit", async (e) => 
 // =========================
 function showToast(text) {
   const toast = document.getElementById("toastSuccess");
+  if (!toast) return;
+
   toast.textContent = text;
   toast.classList.remove("hidden");
 
-  setTimeout(() => {
-    toast.classList.add("hidden");
-  }, 2500);
+  setTimeout(() => toast.classList.add("hidden"), 2500);
 }
 
 // =========================
@@ -212,11 +216,17 @@ function attachEvents() {
     btn.addEventListener("click", async () => {
       const id = btn.dataset.id;
 
-      const { data: user } = await supabase
+      const { data: user, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("user_id", id)
         .single();
+
+      if (error || !user) {
+        alert("No se pudo cargar el usuario.");
+        console.error(error);
+        return;
+      }
 
       openEditModal(user);
     });
@@ -264,15 +274,22 @@ async function toggleStatus(user_id, currentStatus) {
 }
 
 // =========================
-// ELIMINAR USUARIO
+// ELIMINAR USUARIO (robusto)
 // =========================
 async function deleteUser(user_id) {
   if (!confirm("¿Seguro que deseas eliminar este usuario?")) return;
 
+  // Token (opcional: si tu API luego lo valida)
+  const { data: sessionData } = await supabase.auth.getSession();
+  const access_token = sessionData?.session?.access_token;
+
   const response = await fetch("/api/delete-user", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user_id })
+    headers: {
+      "Content-Type": "application/json",
+      ...(access_token ? { Authorization: `Bearer ${access_token}` } : {}),
+    },
+    body: JSON.stringify({ user_id }),
   });
 
   const text = await response.text();
@@ -285,21 +302,10 @@ async function deleteUser(user_id) {
     return;
   }
 
-  alert("Usuario eliminado correctamente.");
-  await loadAndRenderUsers(); // ✅ esta sí existe
+  showToast("Usuario eliminado correctamente");
+  await loadAndRenderUsers();
 }
-const { data: { session } } = await supabase.auth.getSession();
-const access_token = session?.access_token;
 
-const res = await fetch("/api/delete-user", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${access_token}`
-  },
-  body: JSON.stringify({ user_id })
-});
-      
 // =========================
 // VALIDAR ADMIN
 // =========================
@@ -329,7 +335,6 @@ async function validateAdmin() {
 (async () => {
   await validateAdmin();
 
-  // Eventos del buscador y filtro
   const searchInput = document.getElementById("searchUser");
   const filterRole = document.getElementById("filterRole");
 
