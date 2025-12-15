@@ -288,6 +288,18 @@ async function deleteUser(user_id) {
   alert("Usuario eliminado correctamente.");
   await loadAndRenderUsers(); // ✅ esta sí existe
 }
+const { data: { session } } = await supabase.auth.getSession();
+const access_token = session?.access_token;
+
+const res = await fetch("/api/delete-user", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${access_token}`
+  },
+  body: JSON.stringify({ user_id })
+});
+      
 // =========================
 // VALIDAR ADMIN
 // =========================
