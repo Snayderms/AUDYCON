@@ -104,3 +104,23 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: String(e?.message || e) });
   }
 }
+// === LOG DE AUDITORÍA ===
+let performedBy = null;
+
+const authHeader = req.headers.authorization || "";
+const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+if (token) {
+  const { data } = await supabase.auth.getUser(token);
+  performedBy = data?.user?.id || null;
+}
+
+await supabase.from("logs").insert({
+  action: "DELETE_USER",
+  performed_by: performedBy,
+  target_user: user_id,
+  detail: {
+    source: "admin_panel",
+    description: "Usuario eliminado desde panel admin"
+  }
+});

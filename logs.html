@@ -1,26 +1,58 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registros del Sistema | AUDYCON</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AUDYCON - Logs</title>
+  <link rel="stylesheet" href="CSS/styles.css" />
+  <script type="module" src="JS/logs.js"></script>
 </head>
+
 <body class="bg-gray-100">
-
-  <nav class="bg-white shadow p-4 flex justify-between items-center">
-    <h1 class="text-xl font-bold text-blue-700">AUDYCON - Logs</h1>
+  <header class="w-full bg-white shadow flex justify-between items-center px-6 py-4">
+    <h1 class="text-xl font-bold text-blue-700">AUDYCON - LOGS</h1>
     <a href="admin.html" class="text-blue-600 hover:underline">Volver</a>
-  </nav>
+  </header>
 
-  <div class="max-w-6xl mx-auto mt-10 bg-white shadow-lg rounded-xl p-8">
-    <h2 class="text-2xl font-bold mb-6">Registros del Sistema</h2>
+  <main class="max-w-6xl mx-auto p-6">
+    <div class="bg-white rounded shadow p-4">
+      <div class="flex flex-col md:flex-row gap-3 md:items-center md:justify-between mb-4">
+        <h2 class="text-lg font-semibold">Auditoría del sistema</h2>
 
-    <div id="logs-container" class="space-y-4">
-      <!-- Logs cargados dinámicamente -->
+        <div class="flex gap-2">
+          <input id="searchLog" class="border rounded px-3 py-2 text-sm w-64"
+                 placeholder="Buscar por acción o detalle..." />
+          <select id="filterAction" class="border rounded px-3 py-2 text-sm">
+            <option value="ALL">Todas</option>
+            <option value="DELETE_USER">DELETE_USER</option>
+            <option value="CHANGE_ROLE">CHANGE_ROLE</option>
+            <option value="TOGGLE_STATUS">TOGGLE_STATUS</option>
+            <option value="EDIT_USER">EDIT_USER</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="overflow-auto">
+        <table class="w-full text-sm border">
+          <thead class="bg-blue-600 text-white">
+            <tr>
+              <th class="p-2 text-left">Fecha</th>
+              <th class="p-2 text-left">Acción</th>
+              <th class="p-2 text-left">Realizado por</th>
+              <th class="p-2 text-left">Objetivo</th>
+              <th class="p-2 text-left">Detalle</th>
+            </tr>
+          </thead>
+          <tbody id="logs-table"></tbody>
+        </table>
+      </div>
+
+      <div class="flex items-center justify-between mt-4">
+        <button id="prevBtn" class="px-3 py-2 border rounded text-sm">Anterior</button>
+        <span id="pageInfo" class="text-sm text-gray-600">Página 1</span>
+        <button id="nextBtn" class="px-3 py-2 border rounded text-sm">Siguiente</button>
+      </div>
     </div>
-  </div>
-
-  <script type="module" src="./JS/dashboard.js"></script>
+  </main>
 </body>
 </html>
