@@ -12,7 +12,8 @@ async function getUsers() {
     console.error("Error al obtener usuarios:", error);
     return [];
   }
-  return (data || []).filter(u => u.status !== "DELETED");
+  // ocultar soft-deleted
+  return (data || []).filter((u) => u.status !== "DELETED");
 }
 
 // =========================
@@ -70,7 +71,7 @@ function renderTable(users) {
     row.innerHTML = `
       <td class="py-3 px-4">${u.full_name || "(Sin nombre)"}</td>
       <td class="py-3 px-4">${u.email || ""}</td>
-      <td class="py-3 px-4 font-semibold">${u.role}</td>
+      <td class="py-3 px-4 font-semibold">${u.role || ""}</td>
 
       <td class="py-3 px-4 flex flex-wrap gap-2">
         <select class="role-select border p-1 rounded text-sm" data-id="${u.user_id}">
@@ -134,6 +135,30 @@ async function logAction(action, target_user, detail = {}) {
 }
 
 // =========================
+// MOSTRAR MODAL (FIX)
+// =========================
+function openEditModal(user) {
+  if (!user) return;
+
+  document.getElementById("edit_user_id").value = user.user_id;
+  document.getElementById("edit_first_name").value = user.first_name || "";
+  document.getElementById("edit_last_name").value = user.last_name || "";
+  document.getElementById("edit_phone").value = user.phone || "";
+  document.getElementById("edit_company").value = user.company || "";
+  document.getElementById("edit_role").value = user.role || "CLIENTE";
+  document.getElementById("edit_status").value = user.status || "ACTIVE";
+
+  document.getElementById("editModal")?.classList.remove("hidden");
+}
+
+// =========================
+// CERRAR MODAL (FIX)
+// =========================
+document.getElementById("closeModal")?.addEventListener("click", () => {
+  document.getElementById("editModal")?.classList.add("hidden");
+});
+
+// =========================
 // EVENTOS
 // =========================
 function attachEvents() {
@@ -145,7 +170,8 @@ function attachEvents() {
 
   document.querySelectorAll(".status-btn").forEach((btn) => {
     btn.addEventListener("click", function () {
-      const current = this.textContent.trim() === "Suspender" ? "ACTIVE" : "SUSPENDED";
+      const current =
+        this.textContent.trim() === "Suspender" ? "ACTIVE" : "SUSPENDED";
       toggleStatus(this.dataset.id, current);
     });
   });
@@ -154,10 +180,23 @@ function attachEvents() {
     btn.addEventListener("click", () => deleteUser(btn.dataset.id));
   });
 
+  // EDITAR (FIX: control de error + openEditModal existe)
   document.querySelectorAll(".edit-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.dataset.id;
-      const { data: user } = await supabase.from("profiles").select("*").eq("user_id", id).single();
+
+      const { data: user, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", id)
+        .single();
+
+      if (error || !user) {
+        alert("No se pudo cargar el usuario.");
+        console.error(error);
+        return;
+      }
+
       openEditModal(user);
     });
   });
@@ -167,14 +206,23 @@ function attachEvents() {
 // CAMBIAR ROL
 // =========================
 async function changeRole(user_id, newRole) {
-  const { error } = await supabase.from("profiles").update({ role: newRole }).eq("user_id", user_id);
-  if (error) return alert("Error al cambiar rol");
+  const { error } = await supabase
+    .from("profiles")
+    .update({ role: newRole })
+    .eq("user_id", user_id);
+
+  if (error) {
+    alert("Error al cambiar rol");
+    console.error(error);
+    return;
+  }
 
   showToast("Rol actualizado");
   await logAction("CHANGE_ROLE", user_id, {
     source: "admin_panel",
-    description: `Rol cambiado a ${newRole}`
+    description: `Rol cambiado a ${newRole}`,
   });
+
   await loadAndRenderUsers();
 }
 
@@ -183,24 +231,41 @@ async function changeRole(user_id, newRole) {
 // =========================
 async function toggleStatus(user_id, currentStatus) {
   const newStatus = currentStatus === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
-  const { error } = await supabase.from("profiles").update({ status: newStatus }).eq("user_id", user_id);
-  if (error) return alert("Error al actualizar estado");
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ status: newStatus })
+    .eq("user_id", user_id);
+
+  if (error) {
+    alert("Error al actualizar estado");
+    console.error(error);
+    return;
+  }
 
   showToast("Estado actualizado");
   await logAction("TOGGLE_STATUS", user_id, {
     source: "admin_panel",
-    description: `Estado cambiado a ${newStatus}`
+    description: `Estado cambiado a ${newStatus}`,
   });
+
   await loadAndRenderUsers();
 }
 
 // =========================
-// EDITAR USUARIO
+// EDITAR USUARIO (SUBMIT MODAL)
 // =========================
 document.getElementById("editUserForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
 
+  const btn = document.getElementById("saveEdit");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Guardando...";
+  }
+
   const user_id = document.getElementById("edit_user_id").value;
+
   const updatedData = {
     first_name: document.getElementById("edit_first_name").value,
     last_name: document.getElementById("edit_last_name").value,
@@ -214,18 +279,38 @@ document.getElementById("editUserForm")?.addEventListener("submit", async (e) =>
       document.getElementById("edit_last_name").value,
   };
 
-  const { error } = await supabase.from("profiles").update(updatedData).eq("user_id", user_id);
-  if (error) return alert("Error al actualizar usuario");
+  const { error } = await supabase
+    .from("profiles")
+    .update(updatedData)
+    .eq("user_id", user_id);
 
+  // 🔴 ERROR
+  if (error) {
+    alert("Error al actualizar usuario");
+    console.error(error);
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Guardar cambios";
+    }
+    return;
+  }
+
+  // ✅ OK
   showToast("Usuario actualizado");
   await logAction("EDIT_USER", user_id, {
     source: "admin_panel",
     description: "Datos actualizados desde modal",
-    fields: updatedData
+    fields: updatedData,
   });
 
   document.getElementById("editModal")?.classList.add("hidden");
   await loadAndRenderUsers();
+
+  // 🔓 REACTIVAR BOTÓN
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = "Guardar cambios";
+  }
 });
 
 // =========================
@@ -246,9 +331,18 @@ async function deleteUser(user_id) {
     body: JSON.stringify({ user_id }),
   });
 
+  const text = await res.text();
+  let payload = {};
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    payload = { raw: text };
+  }
+
   if (!res.ok) {
-    const err = await res.json();
-    return alert(err.error || "Error al eliminar");
+    alert(payload.error || "Error al eliminar");
+    console.error("Delete error:", payload, "status:", res.status);
+    return;
   }
 
   showToast("Usuario eliminado");
@@ -261,9 +355,18 @@ async function deleteUser(user_id) {
 async function validateAdmin() {
   const { data } = await supabase.auth.getSession();
   const user = data?.session?.user;
-  if (!user) return (window.location.href = "login.html");
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("user_id", user.id).single();
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("user_id", user.id)
+    .single();
+
   if (!profile || profile.role !== "ADMIN") {
     window.location.href = "dashboard.html";
   }
@@ -274,7 +377,9 @@ async function validateAdmin() {
 // =========================
 (async () => {
   await validateAdmin();
+
   document.getElementById("searchUser")?.addEventListener("input", applyFilters);
   document.getElementById("filterRole")?.addEventListener("change", applyFilters);
+
   await loadAndRenderUsers();
 })();
