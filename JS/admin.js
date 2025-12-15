@@ -1,7 +1,7 @@
-// JS/admin.js — Panel ADMIN con búsqueda, filtro, modal y toast
+// JS/admin.js — Panel ADMIN con búsqueda, filtro, modal, toast y LOGS
 import { supabase } from "./ConexionSB.js";
 
-let allUsers = []; // todos los usuarios en memoria
+let allUsers = [];
 
 // =========================
 // OBTENER USUARIOS (RPC)
@@ -12,7 +12,7 @@ async function getUsers() {
     console.error("Error al obtener usuarios:", error);
     return [];
   }
-  return (data || []).filter(u => u.status !== "DELETED");  
+  return (data || []).filter(u => u.status !== "DELETED");
 }
 
 // =========================
@@ -24,7 +24,7 @@ async function loadAndRenderUsers() {
 }
 
 // =========================
-// APLICAR BUSCADOR + FILTRO
+// FILTROS
 // =========================
 function applyFilters() {
   const searchInput = document.getElementById("searchUser");
@@ -35,7 +35,6 @@ function applyFilters() {
 
   let filtered = allUsers;
 
-  // Filtro por texto (nombre o correo)
   if (text) {
     filtered = filtered.filter((u) => {
       const name = (u.full_name || "").toLowerCase();
@@ -44,7 +43,6 @@ function applyFilters() {
     });
   }
 
-  // Filtro por rol
   if (role !== "ALL") {
     filtered = filtered.filter((u) => u.role === role);
   }
@@ -60,7 +58,7 @@ function renderTable(users) {
   if (!table) return;
 
   if (!users.length) {
-    table.innerHTML = `<tr><td colspan="4" class="p-4 text-center">No hay usuarios que coincidan.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="4" class="p-4 text-center">No hay usuarios.</td></tr>`;
     return;
   }
 
@@ -72,10 +70,9 @@ function renderTable(users) {
     row.innerHTML = `
       <td class="py-3 px-4">${u.full_name || "(Sin nombre)"}</td>
       <td class="py-3 px-4">${u.email || ""}</td>
-      <td class="py-3 px-4 font-semibold">${u.role || ""}</td>
+      <td class="py-3 px-4 font-semibold">${u.role}</td>
 
       <td class="py-3 px-4 flex flex-wrap gap-2">
-
         <select class="role-select border p-1 rounded text-sm" data-id="${u.user_id}">
           <option value="ADMIN" ${u.role === "ADMIN" ? "selected" : ""}>ADMIN</option>
           <option value="JEFE" ${u.role === "JEFE" ? "selected" : ""}>JEFE</option>
@@ -96,7 +93,6 @@ function renderTable(users) {
         <button class="edit-btn px-3 py-1 rounded bg-blue-600 text-white text-sm" data-id="${u.user_id}">
           Editar
         </button>
-
       </td>
     `;
 
@@ -107,75 +103,7 @@ function renderTable(users) {
 }
 
 // =========================
-// MOSTRAR MODAL
-// =========================
-function openEditModal(user) {
-  document.getElementById("edit_user_id").value = user.user_id;
-  document.getElementById("edit_first_name").value = user.first_name || "";
-  document.getElementById("edit_last_name").value = user.last_name || "";
-  document.getElementById("edit_phone").value = user.phone || "";
-  document.getElementById("edit_company").value = user.company || "";
-  document.getElementById("edit_role").value = user.role || "CLIENTE";
-  document.getElementById("edit_status").value = user.status || "ACTIVE";
-
-  document.getElementById("editModal").classList.remove("hidden");
-}
-
-// =========================
-// CERRAR MODAL
-// =========================
-document.getElementById("closeModal")?.addEventListener("click", () => {
-  document.getElementById("editModal")?.classList.add("hidden");
-});
-
-// =========================
-// GUARDAR CAMBIOS DEL MODAL
-// =========================
-document.getElementById("editUserForm")?.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const btn = document.getElementById("saveEdit");
-  if (!btn) return;
-
-  btn.disabled = true;
-  btn.textContent = "Guardando...";
-
-  const user_id = document.getElementById("edit_user_id").value;
-
-  const first = document.getElementById("edit_first_name").value;
-  const last = document.getElementById("edit_last_name").value;
-
-  const updatedData = {
-    first_name: first,
-    last_name: last,
-    phone: document.getElementById("edit_phone").value,
-    company: document.getElementById("edit_company").value,
-    role: document.getElementById("edit_role").value,
-    status: document.getElementById("edit_status").value,
-    full_name: `${first} ${last}`.trim(),
-  };
-
-  const { error } = await supabase
-    .from("profiles")
-    .update(updatedData)
-    .eq("user_id", user_id);
-
-  btn.disabled = false;
-  btn.textContent = "Guardar cambios";
-
-  if (error) {
-    alert("Error al actualizar usuario.");
-    console.error(error);
-    return;
-  }
-
-  showToast("Usuario actualizado correctamente");
-  document.getElementById("editModal")?.classList.add("hidden");
-  await loadAndRenderUsers();
-});
-
-// =========================
-// TOAST DE ÉXITO
+// TOAST
 // =========================
 function showToast(text) {
   const toast = document.getElementById("toastSuccess");
@@ -183,22 +111,38 @@ function showToast(text) {
 
   toast.textContent = text;
   toast.classList.remove("hidden");
-
   setTimeout(() => toast.classList.add("hidden"), 2500);
 }
 
 // =========================
-// EVENTOS DINÁMICOS
+// LOG HELPER
+// =========================
+async function logAction(action, target_user, detail = {}) {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const performed_by = data?.session?.user?.id || null;
+
+    await supabase.from("logs").insert({
+      action,
+      performed_by,
+      target_user,
+      detail,
+    });
+  } catch (e) {
+    console.warn("No se pudo registrar log:", e);
+  }
+}
+
+// =========================
+// EVENTOS
 // =========================
 function attachEvents() {
-  // Cambiar rol
   document.querySelectorAll(".role-select").forEach((s) => {
     s.addEventListener("change", function () {
       changeRole(this.dataset.id, this.value);
     });
   });
 
-  // Cambiar estado
   document.querySelectorAll(".status-btn").forEach((btn) => {
     btn.addEventListener("click", function () {
       const current = this.textContent.trim() === "Suspender" ? "ACTIVE" : "SUSPENDED";
@@ -206,28 +150,14 @@ function attachEvents() {
     });
   });
 
-  // Eliminar
   document.querySelectorAll(".delete-btn").forEach((btn) => {
     btn.addEventListener("click", () => deleteUser(btn.dataset.id));
   });
 
-  // Editar
   document.querySelectorAll(".edit-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.dataset.id;
-
-      const { data: user, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", id)
-        .single();
-
-      if (error || !user) {
-        alert("No se pudo cargar el usuario.");
-        console.error(error);
-        return;
-      }
-
+      const { data: user } = await supabase.from("profiles").select("*").eq("user_id", id).single();
       openEditModal(user);
     });
   });
@@ -237,18 +167,14 @@ function attachEvents() {
 // CAMBIAR ROL
 // =========================
 async function changeRole(user_id, newRole) {
-  const { error } = await supabase
-    .from("profiles")
-    .update({ role: newRole })
-    .eq("user_id", user_id);
-
-  if (error) {
-    alert("Error al cambiar rol");
-    console.error(error);
-    return;
-  }
+  const { error } = await supabase.from("profiles").update({ role: newRole }).eq("user_id", user_id);
+  if (error) return alert("Error al cambiar rol");
 
   showToast("Rol actualizado");
+  await logAction("CHANGE_ROLE", user_id, {
+    source: "admin_panel",
+    description: `Rol cambiado a ${newRole}`
+  });
   await loadAndRenderUsers();
 }
 
@@ -257,52 +183,75 @@ async function changeRole(user_id, newRole) {
 // =========================
 async function toggleStatus(user_id, currentStatus) {
   const newStatus = currentStatus === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
-
-  const { error } = await supabase
-    .from("profiles")
-    .update({ status: newStatus })
-    .eq("user_id", user_id);
-
-  if (error) {
-    alert("Error al actualizar estado");
-    console.error(error);
-    return;
-  }
+  const { error } = await supabase.from("profiles").update({ status: newStatus }).eq("user_id", user_id);
+  if (error) return alert("Error al actualizar estado");
 
   showToast("Estado actualizado");
+  await logAction("TOGGLE_STATUS", user_id, {
+    source: "admin_panel",
+    description: `Estado cambiado a ${newStatus}`
+  });
   await loadAndRenderUsers();
 }
 
 // =========================
-// ELIMINAR USUARIO (robusto)
+// EDITAR USUARIO
+// =========================
+document.getElementById("editUserForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const user_id = document.getElementById("edit_user_id").value;
+  const updatedData = {
+    first_name: document.getElementById("edit_first_name").value,
+    last_name: document.getElementById("edit_last_name").value,
+    phone: document.getElementById("edit_phone").value,
+    company: document.getElementById("edit_company").value,
+    role: document.getElementById("edit_role").value,
+    status: document.getElementById("edit_status").value,
+    full_name:
+      document.getElementById("edit_first_name").value +
+      " " +
+      document.getElementById("edit_last_name").value,
+  };
+
+  const { error } = await supabase.from("profiles").update(updatedData).eq("user_id", user_id);
+  if (error) return alert("Error al actualizar usuario");
+
+  showToast("Usuario actualizado");
+  await logAction("EDIT_USER", user_id, {
+    source: "admin_panel",
+    description: "Datos actualizados desde modal",
+    fields: updatedData
+  });
+
+  document.getElementById("editModal")?.classList.add("hidden");
+  await loadAndRenderUsers();
+});
+
+// =========================
+// ELIMINAR USUARIO (API)
 // =========================
 async function deleteUser(user_id) {
   if (!confirm("¿Seguro que deseas eliminar este usuario?")) return;
 
-  // Token (opcional: si tu API luego lo valida)
-  const { data: sessionData } = await supabase.auth.getSession();
-  const access_token = sessionData?.session?.access_token;
+  const { data } = await supabase.auth.getSession();
+  const token = data?.session?.access_token;
 
-  const response = await fetch("/api/delete-user", {
+  const res = await fetch("/api/delete-user", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(access_token ? { Authorization: `Bearer ${access_token}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ user_id }),
   });
 
-  const text = await response.text();
-  let result = {};
-  try { result = JSON.parse(text); } catch { result = { raw: text }; }
-
-  if (!response.ok) {
-    alert(result.error || "No se pudo eliminar el usuario.");
-    console.error("Delete error:", result, "status:", response.status);
-    return;
+  if (!res.ok) {
+    const err = await res.json();
+    return alert(err.error || "Error al eliminar");
   }
 
-  showToast("Usuario eliminado correctamente");
+  showToast("Usuario eliminado");
   await loadAndRenderUsers();
 }
 
@@ -310,36 +259,22 @@ async function deleteUser(user_id) {
 // VALIDAR ADMIN
 // =========================
 async function validateAdmin() {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const user = sessionData?.session?.user;
+  const { data } = await supabase.auth.getSession();
+  const user = data?.session?.user;
+  if (!user) return (window.location.href = "login.html");
 
-  if (!user) {
-    window.location.href = "login.html";
-    return;
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("user_id", user.id)
-    .single();
-
+  const { data: profile } = await supabase.from("profiles").select("role").eq("user_id", user.id).single();
   if (!profile || profile.role !== "ADMIN") {
     window.location.href = "dashboard.html";
   }
 }
 
 // =========================
-// INICIALIZACIÓN
+// INIT
 // =========================
 (async () => {
   await validateAdmin();
-
-  const searchInput = document.getElementById("searchUser");
-  const filterRole = document.getElementById("filterRole");
-
-  searchInput?.addEventListener("input", applyFilters);
-  filterRole?.addEventListener("change", applyFilters);
-
+  document.getElementById("searchUser")?.addEventListener("input", applyFilters);
+  document.getElementById("filterRole")?.addEventListener("change", applyFilters);
   await loadAndRenderUsers();
 })();

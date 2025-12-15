@@ -34,11 +34,10 @@ async function getLogsPaged() {
   const { data, error } = await supabase
     .from("logs")
     .select(`
-  id, action, detail, created_at, performed_by, target_user,
-  performer:profiles!logs_performed_by_fkey(full_name, email),
-  target:profiles!logs_target_user_fkey(full_name, email)
-`)
-
+      id, action, detail, created_at, performed_by, target_user,
+      performer:profiles!logs_performed_by_fkey(full_name, email),
+      target:profiles!logs_target_user_fkey(full_name, email)
+    `)
     .order("created_at", { ascending: false })
     .range(from, to);
 
@@ -64,13 +63,14 @@ function applyFilters() {
 
   let filtered = allLogs;
 
-  if (action !== "ALL") {
-    filtered = filtered.filter(l => l.action === action);
-  }
+  if (action !== "ALL") filtered = filtered.filter((l) => l.action === action);
 
   if (q) {
-    filtered = filtered.filter(l => {
-      const d = typeof l.detail === "string" ? l.detail : JSON.stringify(l.detail || {});
+    filtered = filtered.filter((l) => {
+      const d =
+        typeof l.detail === "string"
+          ? l.detail
+          : JSON.stringify(l.detail || {});
       return (l.action || "").toLowerCase().includes(q) || d.toLowerCase().includes(q);
     });
   }
@@ -133,7 +133,6 @@ function bindEvents() {
   });
 
   document.getElementById("nextBtn")?.addEventListener("click", async () => {
-    // Si la página actual trajo menos de pageSize, ya no hay más
     if (allLogs.length < pageSize) return;
     page++;
     await loadLogs();
