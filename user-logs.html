@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Historial de Usuario | AUDYCON</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+  <nav class="bg-white shadow p-4 flex justify-between">
+    <h1 class="text-xl font-bold text-blue-700">AUDYCON - Historial</h1>
+    <a href="admin.html" class="text-blue-600 hover:underline">Volver</a>
+  </nav>
+
+  <div class="max-w-5xl mx-auto mt-8 bg-white p-6 rounded shadow">
+    <h2 class="text-2xl font-bold mb-4">Historial del usuario</h2>
+
+    <table class="min-w-full border">
+      <thead class="bg-blue-600 text-white">
+        <tr>
+          <th class="p-2">Fecha</th>
+          <th class="p-2">Acción</th>
+          <th class="p-2">Realizado por</th>
+          <th class="p-2">Detalle</th>
+        </tr>
+      </thead>
+      <tbody id="logs-table"></tbody>
+    </table>
+  </div>
+
+  <script type="module" src="./JS/user-logs.js"></script>
+</body>
+</html>

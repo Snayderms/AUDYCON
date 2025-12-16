@@ -1,5 +1,10 @@
 import { supabase } from "./ConexionSB.js";
 
+function shortId(id) {
+  if (!id || typeof id !== "string") return "-";
+  return id.length > 10 ? id.slice(0, 8) + "…" : id;
+}
+
 let allLogs = [];
 let page = 1;
 const pageSize = 20;
@@ -116,10 +121,11 @@ function renderTable(logs) {
     const row = document.createElement("tr");
 
     const performerName =
-      l.performer?.full_name || l.performer?.email || l.performed_by || "-";
+      l.performer?.full_name || l.performer?.email || shortId(l.performed_by);
 
     const targetName =
-      l.target?.full_name || l.target?.email || l.target_user || "-";
+      l.target?.full_name || l.target?.email || shortId(l.target_user);
+
 
     const detailText =
       l.detail?.description ||
