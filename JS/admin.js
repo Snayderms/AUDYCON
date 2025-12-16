@@ -147,6 +147,13 @@ function openEditModal(user) {
   document.getElementById("edit_company").value = user.company || "";
   document.getElementById("edit_role").value = user.role || "CLIENTE";
   document.getElementById("edit_status").value = user.status || "ACTIVE";
+  // Botón: Ver historial del usuario
+  const btnHistory = document.getElementById("viewHistory");
+  if (btnHistory) {
+    btnHistory.onclick = () => {
+      window.location.href = `user-logs.html?user_id=${user.user_id}`;
+  };
+}
 
   document.getElementById("editModal")?.classList.remove("hidden");
 }
