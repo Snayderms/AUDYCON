@@ -1,33 +1,74 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Registrarse | AUDYCON</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./CSS/app.css" />
 </head>
-<body class="bg-gray-100 flex justify-center items-center h-screen">
+<body>
+  <div class="min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-md bg-white/90 backdrop-blur border border-slate-200 shadow-xl rounded-2xl p-8">
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-600 text-white font-bold">A</div>
+        <h1 class="mt-3 text-2xl font-bold text-slate-900">Crear cuenta</h1>
+        <p class="text-slate-500 text-sm">Completa tus datos para registrarte</p>
+      </div>
 
-  <div class="bg-white p-10 rounded-xl shadow-xl w-full max-w-md">
-    <h1 class="text-2xl font-bold mb-4 text-center">Crear cuenta</h1>
+      <div class="space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-sm text-slate-600">Nombre</label>
+            <input id="first_name" placeholder="Nombre"
+              class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="text-sm text-slate-600">Apellido</label>
+            <input id="last_name" placeholder="Apellido"
+              class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
 
-    <input id="first_name" class="input mb-3" placeholder="Nombre">
-    <input id="last_name" class="input mb-3" placeholder="Apellido">
-    <input id="phone" class="input mb-3" placeholder="Teléfono (opcional)">
-    <input id="company" class="input mb-3" placeholder="Empresa (opcional)">
-    <input id="email" class="input mb-3" placeholder="Correo">
-    <input id="password" type="password" class="input mb-3" placeholder="Contraseña">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-sm text-slate-600">Teléfono (opcional)</label>
+            <input id="phone" placeholder="Teléfono"
+              class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="text-sm text-slate-600">Empresa (opcional)</label>
+            <input id="company" placeholder="Empresa"
+              class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
 
-    <button id="signup-btn" class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-800">
-      Registrarse
-    </button>
+        <div>
+          <label class="text-sm text-slate-600">Correo</label>
+          <input id="email" type="email" placeholder="correo@ejemplo.com"
+            class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
 
-    <p id="msg" class="text-center mt-4"></p>
+        <div>
+          <label class="text-sm text-slate-600">Contraseña</label>
+          <input id="password" type="password" placeholder="••••••••"
+            class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+
+        <button id="signup-btn"
+          class="w-full mt-2 py-2.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 active:scale-[0.99] transition">
+          Registrarse
+        </button>
+
+        <p id="msg" class="text-sm text-center text-slate-600"></p>
+
+        <p class="text-sm text-slate-500 text-center">
+          ¿Ya tienes cuenta?
+          <a href="login.html" class="text-blue-600 font-semibold hover:underline">Inicia sesión</a>
+        </p>
+      </div>
+    </div>
   </div>
-
-  <style>
-    .input { width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; }
-  </style>
 
   <script type="module" src="./JS/signup.js"></script>
 </body>

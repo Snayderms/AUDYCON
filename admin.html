@@ -1,39 +1,61 @@
-  <!DOCTYPE html>
-  <html lang="es">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administrador | AUDYCON</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Administrador | AUDYCON</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./CSS/app.css" />
+  <link rel="stylesheet" href="./CSS/admin-modal.css" />
+</head>
 
-    <!-- CSS del modal profesional -->
-    <link rel="stylesheet" href="./CSS/admin-modal.css">
-  </head>
+<body class="bg-slate-50">
+  <!-- Topbar -->
+  <header class="bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center">A</div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900">AUDYCON</h1>
+          <p class="text-sm text-slate-500">Panel de administración</p>
+        </div>
+      </div>
 
-  <body class="bg-gray-100">
+      <div class="flex items-center gap-2">
+        <a href="dashboard.html"
+           class="px-3 py-2 rounded-xl bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition">
+          Dashboard
+        </a>
+        <a href="logs.html"
+           class="px-3 py-2 rounded-xl bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition">
+          Logs
+        </a>
+      </div>
+    </div>
+  </header>
 
-    <!-- NAV -->
-    <nav class="bg-white shadow p-4 flex justify-between items-center">
-      <h1 class="text-xl font-bold text-blue-700">AUDYCON - ADMIN</h1>
-      <a href="dashboard.html" class="text-blue-600 hover:underline">Volver</a>
-    </nav>
-
-    <!-- CONTENIDO -->
-    <div class="max-w-6xl mx-auto mt-10 bg-white shadow-lg rounded-xl p-8">
+  <main class="mx-auto max-w-6xl px-4 py-10">
+    <div class="bg-white/90 backdrop-blur border border-slate-200 shadow-xl rounded-2xl p-6">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
-        <h2 class="text-2xl font-bold">Gestión de Usuarios</h2>
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900">Gestión de usuarios</h2>
+          <p class="text-slate-500 text-sm">Edita, suspende o elimina usuarios de forma segura.</p>
+        </div>
 
         <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-          <input
-            id="searchUser"
-            type="text"
-            placeholder="Buscar por nombre o correo..."
-            class="w-full sm:w-64 px-3 py-2 border rounded-lg text-sm"
-          />
+          <div class="relative w-full sm:w-72">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔎</span>
+            <input
+              id="searchUser"
+              type="text"
+              placeholder="Buscar por nombre o correo..."
+              class="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
           <select
             id="filterRole"
-            class="w-full sm:w-40 px-3 py-2 border rounded-lg text-sm"
+            class="w-full sm:w-48 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="ALL">Todos los roles</option>
             <option value="ADMIN">ADMIN</option>
@@ -44,87 +66,90 @@
         </div>
       </div>
 
-      <table class="min-w-full bg-white border rounded-lg">
-        <thead class="bg-blue-600 text-white">
-          <tr>
-            <th class="py-3 px-4 text-left">Nombre</th>
-            <th class="py-3 px-4 text-left">Correo</th>
-            <th class="py-3 px-4 text-left">Rol</th>
-            <th class="py-3 px-4 text-left">Acciones</th>
-          </tr>
-        </thead>
-
-        <tbody id="users-table"></tbody>
-      </table>
-    </div>
-
-
-    <!-- =============================== -->
-    <!-- MODAL PREMIUM DE EDICIÓN       -->
-    <!-- =============================== -->
-    <div id="editModal" class="modal-overlay hidden">
-      <div class="modal-content animate-modal">
-
-        <h2 class="modal-title">Editar Usuario</h2>
-
-        <form id="editUserForm">
-
-          <input type="hidden" id="edit_user_id">
-
-          <div class="input-group">
-            <label>Nombre</label>
-            <input id="edit_first_name" type="text" class="modal-input" required>
-          </div>
-
-          <div class="input-group">
-            <label>Apellido</label>
-            <input id="edit_last_name" type="text" class="modal-input" required>
-          </div>
-
-          <div class="input-group">
-            <label>Teléfono</label>
-            <input id="edit_phone" type="text" class="modal-input">
-          </div>
-
-          <div class="input-group">
-            <label>Empresa</label>
-            <input id="edit_company" type="text" class="modal-input">
-          </div>
-
-          <div class="input-group">
-            <label>Rol</label>
-            <select id="edit_role" class="modal-input">
-              <option>ADMIN</option>
-              <option>JEFE</option>
-              <option>CONTADOR</option>
-              <option>CLIENTE</option>
-            </select>
-          </div>
-
-          <div class="input-group">
-            <label>Estado</label>
-            <select id="edit_status" class="modal-input">
-              <option value="ACTIVE">Activo</option>
-              <option value="SUSPENDED">Suspendido</option>
-            </select>
-          </div>
-
-          <div class="modal-actions">
-            <button type="button" id="viewHistory" class="btn-secondary">Ver historial</button>
-            <button type="button" id="closeModal" class="btn-secondary">Cancelar</button>
-           <button id="saveEdit" type="submit" class="btn-primary">Guardar cambios</button>
-          </div>
-
-        </form>
+      <div class="overflow-x-auto rounded-2xl border border-slate-200">
+        <table class="min-w-full bg-white">
+          <thead class="bg-slate-50 text-slate-700 sticky top-0">
+            <tr>
+              <th class="py-3 px-4 text-left text-sm font-semibold">Nombre</th>
+              <th class="py-3 px-4 text-left text-sm font-semibold">Correo</th>
+              <th class="py-3 px-4 text-left text-sm font-semibold">Rol</th>
+              <th class="py-3 px-4 text-left text-sm font-semibold">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="users-table" class="divide-y divide-slate-200"></tbody>
+        </table>
       </div>
-    </div>
 
-    <!-- TOAST -->
-    <div id="toastSuccess" class="toast hidden">
-      Usuario actualizado correctamente
+      <p class="text-xs text-slate-500 mt-4">
+        Tip: usa <span class="font-semibold">Logs</span> para ver la auditoría de cambios.
+      </p>
     </div>
+  </main>
 
-    <!-- JS -->
-    <script type="module" src="./JS/admin.js"></script>
-  </body>
-  </html>
+  <!-- =============================== -->
+  <!-- MODAL PREMIUM DE EDICIÓN       -->
+  <!-- =============================== -->
+  <div id="editModal" class="modal-overlay hidden">
+    <div class="modal-content animate-modal">
+      <h2 class="modal-title">Editar Usuario</h2>
+
+      <form id="editUserForm">
+        <input type="hidden" id="edit_user_id">
+
+        <div class="input-group">
+          <label>Nombre</label>
+          <input id="edit_first_name" type="text" class="modal-input" required>
+        </div>
+
+        <div class="input-group">
+          <label>Apellido</label>
+          <input id="edit_last_name" type="text" class="modal-input" required>
+        </div>
+
+        <div class="input-group">
+          <label>Teléfono</label>
+          <input id="edit_phone" type="text" class="modal-input">
+        </div>
+
+        <div class="input-group">
+          <label>Empresa</label>
+          <input id="edit_company" type="text" class="modal-input">
+        </div>
+
+        <div class="input-group">
+          <label>Rol</label>
+          <select id="edit_role" class="modal-input">
+            <option>ADMIN</option>
+            <option>JEFE</option>
+            <option>CONTADOR</option>
+            <option>CLIENTE</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label>Estado</label>
+          <select id="edit_status" class="modal-input">
+            <option value="ACTIVE">Activo</option>
+            <option value="SUSPENDED">Suspendido</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <!-- ✅ MANTENER TU AVANCE -->
+          <button type="button" id="viewHistory" class="btn-secondary">Ver historial</button>
+
+          <button type="button" id="closeModal" class="btn-secondary">Cancelar</button>
+
+          <!-- ✅ IMPORTANTE: submit -->
+          <button id="saveEdit" type="submit" class="btn-primary">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toastSuccess" class="toast hidden">Acción realizada</div>
+
+  <script type="module" src="./JS/admin.js"></script>
+</body>
+</html>

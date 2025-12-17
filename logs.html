@@ -3,26 +3,60 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AUDYCON - Logs</title>
-  <link rel="stylesheet" href="CSS/styles.css" />
-  <script type="module" src="JS/logs.js"></script>
+  <title>Logs | AUDYCON</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./CSS/app.css" />
 </head>
 
-<body class="bg-gray-100">
-  <header class="w-full bg-white shadow flex justify-between items-center px-6 py-4">
-    <h1 class="text-xl font-bold text-blue-700">AUDYCON - LOGS</h1>
-    <a href="admin.html" class="text-blue-600 hover:underline">Volver</a>
+<body class="bg-slate-50">
+  <!-- Topbar -->
+  <header class="bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center">A</div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900">AUDYCON</h1>
+          <p class="text-sm text-slate-500">Auditoría del sistema</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <a href="admin.html"
+           class="px-3 py-2 rounded-xl bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition">
+          Admin
+        </a>
+        <a href="dashboard.html"
+           class="px-3 py-2 rounded-xl bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition">
+          Dashboard
+        </a>
+      </div>
+    </div>
   </header>
 
-  <main class="max-w-6xl mx-auto p-6">
-    <div class="bg-white rounded shadow p-4">
-      <div class="flex flex-col md:flex-row gap-3 md:items-center md:justify-between mb-4">
-        <h2 class="text-lg font-semibold">Auditoría del sistema</h2>
+  <main class="mx-auto max-w-6xl px-4 py-10">
+    <div class="bg-white/90 backdrop-blur border border-slate-200 shadow-xl rounded-2xl p-6">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900">Logs del sistema</h2>
+          <p class="text-sm text-slate-500">Acciones registradas: roles, estados, ediciones y eliminaciones.</p>
+        </div>
 
-        <div class="flex gap-2">
-          <input id="searchLog" class="border rounded px-3 py-2 text-sm w-64"
-                 placeholder="Buscar por acción o detalle..." />
-          <select id="filterAction" class="border rounded px-3 py-2 text-sm">
+        <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <div class="relative w-full sm:w-72">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔎</span>
+            <input
+              id="searchLog"
+              type="text"
+              placeholder="Buscar por acción o detalle..."
+              class="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <select
+            id="filterAction"
+            class="w-full sm:w-56 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
             <option value="ALL">Todas</option>
             <option value="DELETE_USER">DELETE_USER</option>
             <option value="CHANGE_ROLE">CHANGE_ROLE</option>
@@ -32,27 +66,37 @@
         </div>
       </div>
 
-      <div class="overflow-auto">
-        <table class="w-full text-sm border">
-          <thead class="bg-blue-600 text-white">
+      <div class="overflow-x-auto rounded-2xl border border-slate-200">
+        <table class="min-w-full bg-white">
+          <thead class="bg-slate-50 text-slate-700 sticky top-0">
             <tr>
-              <th class="p-2 text-left">Fecha</th>
-              <th class="p-2 text-left">Acción</th>
-              <th class="p-2 text-left">Realizado por</th>
-              <th class="p-2 text-left">Objetivo</th>
-              <th class="p-2 text-left">Detalle</th>
+              <th class="py-3 px-4 text-left text-sm font-semibold">Fecha</th>
+              <th class="py-3 px-4 text-left text-sm font-semibold">Acción</th>
+              <th class="py-3 px-4 text-left text-sm font-semibold">Realizado por</th>
+              <th class="py-3 px-4 text-left text-sm font-semibold">Objetivo</th>
+              <th class="py-3 px-4 text-left text-sm font-semibold">Detalle</th>
             </tr>
           </thead>
-          <tbody id="logs-table"></tbody>
+
+          <tbody id="logs-table" class="divide-y divide-slate-200"></tbody>
         </table>
       </div>
 
-      <div class="flex items-center justify-between mt-4">
-        <button id="prevBtn" class="px-3 py-2 border rounded text-sm">Anterior</button>
-        <span id="pageInfo" class="text-sm text-gray-600">Página 1</span>
-        <button id="nextBtn" class="px-3 py-2 border rounded text-sm">Siguiente</button>
+      <div class="flex items-center justify-between mt-5">
+        <button id="prevBtn" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition">
+          Anterior
+        </button>
+
+        <span id="pageInfo" class="text-sm text-slate-500">Página 1</span>
+
+        <button id="nextBtn" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition">
+          Siguiente
+        </button>
       </div>
     </div>
   </main>
+
+  <!-- ✅ Importante: este es el script correcto para logs -->
+  <script type="module" src="./JS/logs.js"></script>
 </body>
 </html>
