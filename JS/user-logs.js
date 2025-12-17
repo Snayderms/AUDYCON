@@ -42,19 +42,34 @@ async function validateAdmin() {
 }
 
 async function loadUserLogs(user_id) {
+  // ✅ Traer logs donde el usuario es OBJETIVO o quien EJECUTÓ la acción
   const { data, error } = await supabase
     .from("logs")
     .select(`
-      id, action, detail, created_at, performed_by,
-      performer:profiles!logs_performed_by_fkey(full_name, email)
+      id, action, detail, created_at, performed_by, target_user,
+      performer:profiles!logs_performed_by_fkey(full_name),
+      target:profiles!logs_target_user_fkey(full_name)
     `)
-    .eq("target_user", user_id)
+    .or(`target_user.eq.${user_id},performed_by.eq.${user_id}`)
     .order("created_at", { ascending: false })
     .limit(200);
 
   if (error) {
     console.error("Error cargando logs usuario:", error?.message, error);
-    return [];
+
+    // ✅ Fallback sin JOIN (por si alguna relación FK falla)
+    const fallback = await supabase
+      .from("logs")
+      .select("id, action, detail, created_at, performed_by, target_user")
+      .or(`target_user.eq.${user_id},performed_by.eq.${user_id}`)
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    if (fallback.error) {
+      console.error("Fallback logs error:", fallback.error?.message, fallback.error);
+      return [];
+    }
+    return fallback.data || [];
   }
 
   return data || [];
@@ -75,7 +90,7 @@ function renderTable(logs) {
     const row = document.createElement("tr");
 
     const performerName =
-      l.performer?.full_name || l.performer?.email || shortId(l.performed_by);
+      l.performer?.full_name || shortId(l.performed_by);
 
     const detailText =
       l.detail?.description ||
@@ -99,7 +114,7 @@ function renderTable(logs) {
 
   const user_id = getUserIdFromUrl();
   if (!user_id) {
-    alert("Falta user_id en la URL. Ejemplo: user-logs.html?user_id=UUID");
+    alert("Falta user_id en la URL.");
     window.location.href = "admin.html";
     return;
   }
